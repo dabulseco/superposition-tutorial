@@ -1,0 +1,566 @@
+"""
+tutor.py — the "Ask the tutor" feature, powered by an Ollama language model
+===========================================================================
+
+This file works in two modes, chosen automatically:
+
+  LOCAL  (no API key set)  Talks to Ollama running on the same computer
+                           (http://localhost:11434 by default). No student
+                           question or answer is sent to an outside company.
+
+  HOSTED (OLLAMA_API_KEY set)  Talks to Ollama's cloud service at
+                           https://ollama.com, so the app can run on a web
+                           host that has no Ollama of its own. Questions and
+                           answers ARE sent to Ollama's servers in this mode.
+
+WHAT THIS FILE DOES
+-------------------
+1. list_models()          -> asks Ollama which models are installed.
+                             The order matches `ollama list` (newest first),
+                             so the first model is the app's default.
+2. build_system_prompt()  -> writes the tutor's instructions, including the
+                             CURRENT numbers from the simulation, so answers
+                             refer to what the student is looking at.
+3. stream_answer()        -> sends the conversation to the model and yields
+                             the reply piece by piece (so text appears as it
+                             is written). The tutor also proposes a few
+                             questions to consider next; those are collected
+                             separately so the app can show them as buttons.
+4. log_interaction()      -> optionally saves each question and answer to a
+                             local file (useful as research data; check your
+                             IRB protocol before turning it on with students).
+5. conversation_markdown() / conversation_html()
+                          -> turn the conversation into a file the student
+                             can download, share, or hand in for analysis.
+
+SETUP (one time)
+----------------
+    1. Install Ollama from https://ollama.com
+    2. Download at least one chat model, for example:
+           ollama pull llama3.2
+    3. Make sure Ollama is running (the desktop app, or `ollama serve`).
+
+To use an Ollama server on another machine, set the environment variable
+OLLAMA_URL, e.g.  OLLAMA_URL=http://192.168.1.20:11434
+
+SETTINGS FOR HOSTING ONLINE
+---------------------------
+Each can be an environment variable or a line in .streamlit/secrets.toml
+(on Streamlit Community Cloud: the app's "Secrets" box).
+
+    OLLAMA_API_KEY   your key from https://ollama.com/settings/keys
+    APP_PASSWORD     students must type this before they can use the tutor
+    OLLAMA_MODELS    optional, comma-separated models to offer,
+                     e.g. "gemma4:31b, gpt-oss:120b"
+
+Never put the key in this file or commit secrets.toml to GitHub.
+"""
+
+import html
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+import requests
+
+
+def setting(name: str, default: str = "") -> str:
+    """Read a setting from the environment, or else from Streamlit secrets."""
+    value = os.environ.get(name)
+    if value:
+        return value.strip()
+    try:
+        import streamlit as st
+        return str(st.secrets[name]).strip()
+    except Exception:   # no secrets file, or this setting isn't in it
+        return default
+
+
+def load_settings() -> None:
+    """
+    Read the settings below. app.py calls this each time the page runs, so
+    a change to secrets.toml takes effect without restarting the app.
+    """
+    global OLLAMA_API_KEY, HOSTED, OLLAMA_URL, APP_PASSWORD, HOSTED_MODELS
+
+    # With a key we are in HOSTED mode and talk to Ollama's cloud service.
+    OLLAMA_API_KEY = setting("OLLAMA_API_KEY")
+    HOSTED = bool(OLLAMA_API_KEY)
+
+    # Where Ollama is listening. Can be changed with the OLLAMA_URL setting.
+    OLLAMA_URL = setting(
+        "OLLAMA_URL", "https://ollama.com" if HOSTED else "http://localhost:11434"
+    ).rstrip("/")
+
+    # If set, students must enter this before the tutor will answer.
+    APP_PASSWORD = setting("APP_PASSWORD")
+
+    # Models offered in HOSTED mode (the first one available is the default).
+    # The cloud catalogue is long, so we show only a few that suit tutoring.
+    HOSTED_MODELS = [m.strip() for m in setting(
+        "OLLAMA_MODELS", "gemma4:31b, gpt-oss:120b, gpt-oss:20b").split(",")
+        if m.strip()]
+
+
+load_settings()
+
+# How many earlier messages to send with each new question. Keeping this
+# small keeps answers fast on modest hardware.
+MAX_HISTORY_MESSAGES = 10
+
+
+class OllamaUnavailable(Exception):
+    """Raised when Ollama can't be reached or returns an error."""
+
+
+def _headers() -> dict:
+    """The API key, sent with every request in HOSTED mode."""
+    return {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if HOSTED else {}
+
+
+# -----------------------------------------------------------------------------
+# 1. Which models are installed?
+# -----------------------------------------------------------------------------
+
+def list_models() -> list[str]:
+    """
+    Return the names of installed models, in the same order as `ollama list`.
+
+    Ollama's /api/tags endpoint is what the `ollama list` command itself uses,
+    and it returns models sorted newest first. We keep that order, so the
+    first name in the list is the default choice in the app.
+    """
+    try:
+        reply = requests.get(f"{OLLAMA_URL}/api/tags", headers=_headers(),
+                             timeout=10 if HOSTED else 3)
+        reply.raise_for_status()
+    except requests.RequestException as err:
+        if HOSTED:
+            raise OllamaUnavailable(
+                f"Could not reach the Ollama cloud service at {OLLAMA_URL}. "
+                "Try again in a moment."
+            ) from err
+        raise OllamaUnavailable(
+            f"Could not reach Ollama at {OLLAMA_URL}. "
+            "Start the Ollama app (or run `ollama serve`) and reload this page."
+        ) from err
+
+    available = [m["name"] for m in reply.json().get("models", [])]
+    if HOSTED:
+        # Offer only our short list, in our order. If none of those exist
+        # any more, fall back to everything the service offers.
+        chosen = [m for m in HOSTED_MODELS if m in available]
+        return chosen or available
+    return available
+
+
+# -----------------------------------------------------------------------------
+# 2. The tutor's instructions
+# -----------------------------------------------------------------------------
+
+# The tutor ends each reply with this line, then a short list of questions
+# the student might consider next. The app shows them as buttons.
+SUGGESTION_MARKER = "NEXT QUESTIONS:"
+MAX_SUGGESTIONS = 3
+
+# Shown before the student has asked anything.
+STARTER_QUESTIONS = [
+    "What is the difference between a superposition and a mixture?",
+    "How should I decide what to predict here?",
+    "What does the relative phase φ change?",
+]
+
+# Short reference notes the tutor must stay consistent with. Later, this is
+# where retrieved passages from the RAG corpus (textbook, lecture notes)
+# will be inserted instead of a fixed block.
+REFERENCE_NOTES = """
+- A spin-1/2 state can be drawn as a Bloch vector r. Pure states (including
+  superpositions) lie ON the sphere, |r| = 1. Mixtures lie INSIDE, |r| < 1.
+- Born rule for spin-1/2: measuring along unit axis n gives "+" with
+  probability P(+) = (1 + r . n) / 2.
+- The superposition cos(theta/2)|0> + e^{i phi} sin(theta/2)|1> has Bloch
+  vector (sin theta cos phi, sin theta sin phi, cos theta).
+- The matching mixture ("|0> with prob cos^2(theta/2), else |1>") has Bloch
+  vector (0, 0, cos theta). It has no phase, so it has no x or y component.
+- Along z the two give identical statistics. Along any axis with an x or y
+  component, they can differ. That difference is how experiments tell a
+  superposition from "one or the other, we just don't know which".
+- Density matrix rho = (I + r . sigma)/2. Off-diagonal entries (coherences)
+  carry the relative phase and are zero for the mixture.
+- Relative phase is physical: (|0>+|1>)/sqrt2 and (|0>-|1>)/sqrt2 have the
+  same z statistics but opposite x results. A global phase has no effect.
+- Each single measurement outcome is random; only the statistics over many
+  shots are predictable.
+"""
+
+
+def build_system_prompt(sim: dict) -> str:
+    """
+    Write the tutor's instructions, including the live simulation settings.
+
+    `sim` is a dictionary built in app.py. It holds the current sliders,
+    probabilities, the student's prediction, and (if run) the results.
+    """
+    revealed = sim["experiment_ran"]
+
+    if revealed:
+        numbers = (
+            f"- Theory: P(+) superposition = {sim['p_pure']:.3f}, "
+            f"P(+) mixture = {sim['p_mix']:.3f}\n"
+            f"- Simulated results ({sim['n_shots']} shots each): "
+            f"superposition {sim['plus_pure']} '+', "
+            f"mixture {sim['plus_mix']} '+'\n"
+        )
+        reveal_rule = "The student has already run the experiment, so you may discuss these numbers."
+    else:
+        numbers = "- (The student has not run the experiment yet.)\n"
+        reveal_rule = (
+            "The student has NOT run the experiment yet. Do not state the "
+            "probabilities for the current axis or whether the two states will "
+            "differ there. Help them reason toward a prediction instead."
+        )
+
+    return f"""You are a patient physics tutor helping an undergraduate use an
+interactive simulation that compares a quantum superposition with a classical
+mixture of spin-1/2 states.
+
+HOW TO ANSWER
+- Use plain language at the level of a first quantum mechanics course.
+- Keep answers short: usually 3 to 6 sentences. Offer to go deeper.
+- Tie your answer to what the student can see or try in the simulation
+  (sliders for theta and phi, the measurement axis, the Bloch sphere, the
+  P(+) sweep plot, the density matrices).
+- If a question is outside this topic, say so briefly and steer back.
+- If you are not sure, say so rather than guessing.
+
+GUIDE, DON'T TELL
+Your goal is for the student to reach the answer themselves.
+- When the student asks something they could work out (a "why", a "what
+  happens if", a prediction, a calculation), do NOT state the conclusion.
+  Give one small hint or point to something to look at or try in the
+  simulation, then ask ONE directed question that moves them a step closer.
+- Build on what the student just said. Name what is right in their thinking
+  before addressing what is not, and encourage them: effort and partial
+  ideas deserve credit. Be warm but specific; avoid empty praise.
+- When the student reasons their way to a correct answer, say so clearly
+  and confirm it in a sentence, so they are not left unsure.
+- If the student is wrong, don't just correct them. Ask a question or
+  suggest an experiment in the simulation that exposes the problem.
+- Answer directly, without a guiding question, when the student asks for a
+  definition, what a symbol or control means, or how to use the page.
+- Give the full explanation when the student has made two real attempts
+  and is still stuck, or says plainly that they want to be told. Then ask
+  them to check it against the simulation.
+
+QUESTIONS TO CONSIDER NEXT
+End EVERY reply with this block, exactly in this form, as the last thing
+you write:
+
+{SUGGESTION_MARKER}
+- first question
+- second question
+- third question
+
+Give two or three short questions (under 20 words each), worded as the
+student would ask them, that take the next step from this conversation:
+something to predict, test in the simulation, or explain. They must not
+give away an answer, and they must respect the rule below about results
+the student has not seen yet. Do not mention this block in your reply.
+- Write math with $...$ (for example $P(+) = (1 + \\vec r \\cdot \\hat n)/2$).
+- Stay consistent with the REFERENCE NOTES. Never invent numbers; use only
+  the numbers given below or ones you compute from the formulas in the notes.
+
+{reveal_rule}
+
+CURRENT SIMULATION SETTINGS
+- theta = {sim['theta']} deg, phi = {sim['phi']} deg
+- Superposition: {sim['state_text']}
+- Mixture: |0> with probability {sim['p0']:.3f}, |1> with probability {1 - sim['p0']:.3f}
+- Measurement axis: tilt {sim['m_polar']} deg from +z, rotated {sim['m_azim']} deg around z ({sim['axis_name']})
+- Student's prediction: {sim['prediction']}
+{numbers}
+REFERENCE NOTES
+{REFERENCE_NOTES}"""
+
+
+# -----------------------------------------------------------------------------
+# 3. Ask the model
+# -----------------------------------------------------------------------------
+
+def stream_answer(model: str, system_prompt: str, history: list[dict],
+                  suggestions: list | None = None):
+    """
+    Send the conversation to Ollama and yield the answer as it is written.
+
+    history     : list of {"role": "user"|"assistant", "content": "..."}
+                  The newest student question must be the last item.
+    suggestions : an empty list. When the answer is finished it holds the
+                  tutor's "questions to consider next", which are kept out
+                  of the answer text.
+    """
+    # Send only the role and text; messages also carry notes for the
+    # downloadable transcript (time, settings) that the model doesn't need.
+    messages = [{"role": "system", "content": system_prompt}]
+    messages += [{"role": m["role"], "content": m["content"]}
+                 for m in history[-MAX_HISTORY_MESSAGES:]]
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "stream": True,
+        "options": {"temperature": 0.3},   # low = steadier, less inventive
+    }
+
+    try:
+        reply = requests.post(f"{OLLAMA_URL}/api/chat", json=payload,
+                              headers=_headers(), stream=True, timeout=(5, 300))
+    except requests.RequestException as err:
+        raise OllamaUnavailable(f"Could not reach Ollama at {OLLAMA_URL}.") from err
+
+    if reply.status_code in (401, 403):
+        raise OllamaUnavailable(
+            "Ollama rejected the API key. Check OLLAMA_API_KEY in the app's secrets.")
+    if reply.status_code == 429:
+        raise OllamaUnavailable(
+            "The tutor has reached its usage limit for now. Try again later.")
+    if reply.status_code != 200:
+        # Ollama explains the problem in the body, e.g. a model that
+        # can't chat (embedding models) or isn't fully downloaded.
+        try:
+            detail = reply.json().get("error", reply.text)
+        except ValueError:
+            detail = reply.text
+        raise OllamaUnavailable(
+            f"The model '{model}' could not answer: {detail}. "
+            "If it is an embedding model (e.g. nomic-embed-text), pick a chat model instead."
+        )
+
+    # Ollama sends one JSON object per line while it writes.
+    def pieces():
+        for line in reply.iter_lines():
+            if not line:
+                continue
+            chunk = json.loads(line)
+            if "error" in chunk:
+                raise OllamaUnavailable(chunk["error"])
+            yield chunk.get("message", {}).get("content", "")
+            if chunk.get("done"):
+                break
+
+    # "Reasoning" models (e.g. deepseek-r1, qwen3) may write private notes
+    # inside <think>...</think>. Students should see only the answer.
+    if suggestions is None:
+        suggestions = []
+    yield from split_suggestions(hide_thinking(pieces()), suggestions)
+
+
+def split_suggestions(pieces, suggestions: list):
+    """
+    Pass the answer through, but stop at the NEXT QUESTIONS block. The
+    questions in that block are put into `suggestions` instead of shown.
+
+    The marker can be split across pieces, and a model may decorate it
+    (e.g. "**NEXT QUESTIONS:**"), so a little text is held back until we
+    know it is not the start of the block.
+    """
+    marker = SUGGESTION_MARKER.rstrip(":").lower()
+    hold = len(marker) + 8          # room for the marker plus decoration
+    buffer = ""
+    tail = None                     # text after the marker, once it is seen
+
+    for piece in pieces:
+        if tail is not None:
+            tail += piece
+            continue
+        buffer += piece
+        at = buffer.lower().find(marker)
+        if at != -1:
+            tail = buffer[at + len(marker):]
+            before = buffer[:at].rstrip(" \t\n*#_-")
+            if before:
+                yield before
+        elif len(buffer) > hold:
+            yield buffer[:-hold]
+            buffer = buffer[-hold:]
+
+    if tail is None:
+        if buffer:
+            yield buffer
+        return
+
+    for line in tail.splitlines():
+        question = line.strip(" \t*#_:-•").lstrip("0123456789.) ").strip()
+        if question and len(suggestions) < MAX_SUGGESTIONS:
+            suggestions.append(question)
+
+
+def hide_thinking(pieces):
+    """
+    Pass text through, dropping anything between <think> and </think>.
+
+    The tags can be split across pieces, so a few characters are held back
+    until we know they are not the start of a tag.
+    """
+    OPEN, CLOSE = "<think>", "</think>"
+    inside = False
+    buffer = ""
+
+    for piece in pieces:
+        buffer += piece
+        out = ""
+        while buffer:
+            if inside:
+                end = buffer.find(CLOSE)
+                if end == -1:
+                    buffer = buffer[-len(CLOSE):]      # keep a possible partial tag
+                    break
+                buffer = buffer[end + len(CLOSE):]
+                inside = False
+            else:
+                start = buffer.find(OPEN)
+                if start == -1:
+                    safe = len(buffer) - (len(OPEN) - 1)
+                    if safe > 0:
+                        out += buffer[:safe]
+                        buffer = buffer[safe:]
+                    break
+                out += buffer[:start]
+                buffer = buffer[start + len(OPEN):]
+                inside = True
+        if out:
+            yield out
+
+    if buffer and not inside:
+        yield buffer
+
+
+# -----------------------------------------------------------------------------
+# 4. Optional local log
+# -----------------------------------------------------------------------------
+
+def log_interaction(path: Path, model: str, sim: dict,
+                    question: str, answer: str) -> None:
+    """
+    Append one question/answer pair to a JSON Lines file (one record per line).
+    Nothing leaves this computer. Contains no names unless a student types one.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "time_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "model": model,
+        "simulation": {k: v for k, v in sim.items() if k != "state_text"},
+        "question": question,
+        "answer": answer,
+    }
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
+
+
+# -----------------------------------------------------------------------------
+# 5. Downloadable transcript
+# -----------------------------------------------------------------------------
+
+def settings_text(sim: dict) -> str:
+    """One line describing the simulation when a question was asked."""
+    text = (f"theta = {sim['theta']} deg, phi = {sim['phi']} deg; "
+            f"measurement axis: {sim['axis_name']} "
+            f"(tilt {sim['m_polar']} deg, rotation {sim['m_azim']} deg); "
+            f"prediction: {sim['prediction']}; ")
+    if sim["experiment_ran"]:
+        text += (f"experiment run with {sim['n_shots']} shots: "
+                 f"superposition {sim['plus_pure']} '+', "
+                 f"mixture {sim['plus_mix']} '+'")
+    else:
+        text += "experiment not yet run"
+    return text
+
+
+def _speaker(msg: dict) -> str:
+    return "Student" if msg["role"] == "user" else "Tutor"
+
+
+def _source(msg: dict) -> str:
+    """Did the student type this question, or click a suggested one?"""
+    return ("clicking a suggested question" if msg.get("suggested")
+            else "typing")
+
+
+def conversation_markdown(chat: list[dict]) -> str:
+    """The whole conversation as a Markdown document."""
+    exported = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    lines = ["# Superposition vs. Mixture: tutor conversation", "",
+             f"Exported (UTC): {exported}", ""]
+    for msg in chat:
+        lines += [f"## {_speaker(msg)}", ""]
+        if msg["role"] == "user":
+            lines += [f"*Time (UTC): {msg.get('time', 'unknown')}*  ",
+                      f"*Simulation: {msg.get('settings', 'unknown')}*  ",
+                      f"*Asked by: {_source(msg)}*", ""]
+        else:
+            lines += [f"*Model: {msg.get('model', 'unknown')}*", ""]
+        lines += [msg["content"], ""]
+        if msg.get("suggestions"):
+            lines += ["*Questions the tutor suggested next:*", ""]
+            lines += [f"- {q}" for q in msg["suggestions"]] + [""]
+    return "\n".join(lines)
+
+
+def conversation_html(chat: list[dict]) -> str:
+    """
+    The whole conversation as one self-contained web page.
+
+    All text is escaped, so nothing a student or the model typed can run as
+    code. Math written with $...$ is drawn by MathJax when the reader is
+    online, and stays readable as plain text when they are not.
+    """
+    exported = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    parts = []
+    for msg in chat:
+        if msg["role"] == "user":
+            note = (f"Time (UTC): {html.escape(str(msg.get('time', 'unknown')))}"
+                    f"<br>Simulation: {html.escape(str(msg.get('settings', 'unknown')))}"
+                    f"<br>Asked by: {_source(msg)}")
+        else:
+            note = f"Model: {html.escape(str(msg.get('model', 'unknown')))}"
+        suggested = ""
+        if msg.get("suggestions"):
+            items = "".join(f"<li>{html.escape(q)}</li>" for q in msg["suggestions"])
+            suggested = (f'<p class="note">Questions the tutor suggested next:</p>\n'
+                         f"<ul>{items}</ul>\n")
+        parts.append(
+            f'<section class="{msg["role"]}">\n'
+            f"<h2>{_speaker(msg)}</h2>\n"
+            f'<p class="note">{note}</p>\n'
+            f'<div class="text">{html.escape(msg["content"])}</div>\n'
+            f"{suggested}"
+            f"</section>")
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Superposition vs. Mixture: tutor conversation</title>
+<style>
+  body {{ font-family: system-ui, sans-serif; max-width: 46rem;
+         margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }}
+  section {{ border-left: 4px solid #999; padding: 0.2rem 1rem; margin: 1rem 0; }}
+  section.user {{ border-color: #c98a00; }}
+  section.assistant {{ border-color: #1f5fbf; }}
+  h2 {{ font-size: 1rem; margin: 0.4rem 0 0; }}
+  .note {{ color: #666; font-size: 0.85rem; margin: 0.2rem 0 0.6rem; }}
+  .text {{ white-space: pre-wrap; }}
+</style>
+<script>
+  MathJax = {{ tex: {{ inlineMath: [["$", "$"]] }} }};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<h1>Superposition vs. Mixture: tutor conversation</h1>
+<p class="note">Exported (UTC): {exported}</p>
+{chr(10).join(parts)}
+</body>
+</html>
+"""
