@@ -4,14 +4,21 @@ tutor.py — the "Ask the tutor" feature, powered by an Ollama language model
 
 This file works in two modes, chosen automatically:
 
-  LOCAL  (no API key set)  Talks to Ollama running on the same computer
-                           (http://localhost:11434 by default). No student
-                           question or answer is sent to an outside company.
+  LOCAL   Talks to Ollama running on the same computer
+          (http://localhost:11434 by default). Every installed model is
+          offered. Models whose names end in "cloud" are forwarded by
+          Ollama to its servers; all others stay on this computer.
 
-  HOSTED (OLLAMA_API_KEY set)  Talks to Ollama's cloud service at
-                           https://ollama.com, so the app can run on a web
-                           host that has no Ollama of its own. Questions and
-                           answers ARE sent to Ollama's servers in this mode.
+  HOSTED  Talks to Ollama's cloud service at https://ollama.com, so the app
+          can run on a web host that has no Ollama of its own. Questions
+          and answers ARE sent to Ollama's servers in this mode.
+
+HOSTED needs an API key (OLLAMA_API_KEY). With a key, the app still runs
+LOCAL when it finds Ollama on this computer, so a laptop that holds a key
+keeps its full local model list. See load_settings() for the exact rule.
+
+The model selected by default is gemma4:31b-cloud (LOCAL) or gemma4:31b
+(HOSTED): the same cloud-served model under its two names.
 
 WHAT THIS FILE DOES
 -------------------
@@ -51,10 +58,14 @@ SETTINGS FOR HOSTING ONLINE
 Each can be an environment variable or a line in .streamlit/secrets.toml
 (on Streamlit Community Cloud: the app's "Secrets" box).
 
-    OLLAMA_API_KEY   your key from https://ollama.com/settings/keys
-    APP_PASSWORD     students must type this before they can use the tutor
-    OLLAMA_MODELS    optional, comma-separated models to offer,
-                     e.g. "gemma4:31b, gpt-oss:120b"
+    OLLAMA_API_KEY        your key from https://ollama.com/settings/keys
+    APP_PASSWORD          students must type this before they can use the
+                          tutor (asked only when HOSTED)
+    OLLAMA_MODELS         optional, comma-separated: offer only these models
+                          when HOSTED, e.g. "gemma4:31b, gpt-oss:120b"
+    OLLAMA_DEFAULT_MODEL  optional: the model selected when the page opens
+    OLLAMA_MODE           optional: "hosted" or "local" to force a mode,
+                          e.g. to try HOSTED on a laptop that runs Ollama
 
 Never put the key in this file or commit secrets.toml to GitHub.
 """
@@ -62,6 +73,8 @@ Never put the key in this file or commit secrets.toml to GitHub.
 import html
 import json
 import os
+import socket
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -80,30 +93,84 @@ def setting(name: str, default: str = "") -> str:
         return default
 
 
+LOCAL_URL = "http://localhost:11434"
+CLOUD_URL = "https://ollama.com"
+
+# The model selected when the page opens, if it is available. Locally this
+# is the cloud-served Gemma that Ollama forwards to its servers; online it
+# is the same model under its cloud name. Change with OLLAMA_DEFAULT_MODEL.
+DEFAULT_LOCAL_MODEL = "gemma4:31b-cloud"
+DEFAULT_HOSTED_MODEL = "gemma4:31b"
+
+_local_check = {"time": 0.0, "running": False}
+
+
+def _local_ollama_running() -> bool:
+    """
+    Is an Ollama listening on this computer? Asked at most every 30
+    seconds, because the settings are re-read each time a page is drawn.
+    """
+    now = time.monotonic()
+    if now - _local_check["time"] > 30 or _local_check["time"] == 0.0:
+        try:
+            socket.create_connection(("localhost", 11434), timeout=0.3).close()
+            _local_check["running"] = True
+        except OSError:
+            _local_check["running"] = False
+        _local_check["time"] = now
+    return _local_check["running"]
+
+
 def load_settings() -> None:
     """
     Read the settings below. app.py calls this each time the page runs, so
     a change to secrets.toml takes effect without restarting the app.
     """
     global OLLAMA_API_KEY, HOSTED, OLLAMA_URL, APP_PASSWORD, HOSTED_MODELS
+    global DEFAULT_MODEL
 
-    # With a key we are in HOSTED mode and talk to Ollama's cloud service.
     OLLAMA_API_KEY = setting("OLLAMA_API_KEY")
-    HOSTED = bool(OLLAMA_API_KEY)
+    url = setting("OLLAMA_URL")
+    mode = setting("OLLAMA_MODE").lower()      # optional: "local" or "hosted"
+
+    # LOCAL or HOSTED? A key alone doesn't decide it: a laptop can hold a
+    # key (to try hosted mode) and still have Ollama running. So:
+    #   no key                      -> LOCAL
+    #   OLLAMA_MODE says            -> that mode
+    #   key and an OLLAMA_URL given -> HOSTED, at that address
+    #   key, Ollama running here    -> LOCAL (the laptop case)
+    #   key, no Ollama here         -> HOSTED (the web-host case)
+    if not OLLAMA_API_KEY or mode == "local":
+        HOSTED = False
+    elif mode == "hosted" or url:
+        HOSTED = True
+    else:
+        HOSTED = not _local_ollama_running()
 
     # Where Ollama is listening. Can be changed with the OLLAMA_URL setting.
-    OLLAMA_URL = setting(
-        "OLLAMA_URL", "https://ollama.com" if HOSTED else "http://localhost:11434"
-    ).rstrip("/")
+    OLLAMA_URL = (url or (CLOUD_URL if HOSTED else LOCAL_URL)).rstrip("/")
 
-    # If set, students must enter this before the tutor will answer.
+    # If set, students must enter this before the tutor will answer when
+    # the app is HOSTED. It is not asked for on your own computer.
     APP_PASSWORD = setting("APP_PASSWORD")
 
-    # Models offered in HOSTED mode (the first one available is the default).
-    # The cloud catalogue is long, so we show only a few that suit tutoring.
-    HOSTED_MODELS = [m.strip() for m in setting(
-        "OLLAMA_MODELS", "gemma4:31b, gpt-oss:120b, gpt-oss:20b").split(",")
-        if m.strip()]
+    # Optional: narrow the list offered in HOSTED mode to these models, in
+    # this order. Left unset, every model the cloud service lists is offered.
+    HOSTED_MODELS = [m.strip() for m in setting("OLLAMA_MODELS").split(",")
+                     if m.strip()]
+
+    DEFAULT_MODEL = setting(
+        "OLLAMA_DEFAULT_MODEL",
+        DEFAULT_HOSTED_MODEL if HOSTED else DEFAULT_LOCAL_MODEL)
+
+
+def default_model(models: list[str]) -> str:
+    """
+    Which of the listed models to select when the page opens: the default
+    above if it is in the list, otherwise the first one (the top line of
+    `ollama list`).
+    """
+    return DEFAULT_MODEL if DEFAULT_MODEL in models else models[0]
 
 
 load_settings()
@@ -174,9 +241,9 @@ def list_models() -> list[str]:
     # Ollama on a laptop can also list "cloud" models, which it forwards to
     # Ollama's servers. Remember them so the app can say where text goes.
     REMOTE_MODELS.update(m["name"] for m in listed if m.get("remote_host"))
-    if HOSTED:
-        # Offer only our short list, in our order. If none of those exist
-        # any more, fall back to everything the service offers.
+    if HOSTED and HOSTED_MODELS:
+        # The instructor narrowed the list (OLLAMA_MODELS). If none of
+        # those exist any more, fall back to everything the service offers.
         chosen = [m for m in HOSTED_MODELS if m in available]
         return chosen or available
     return available

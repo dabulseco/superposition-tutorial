@@ -20,7 +20,8 @@ def isolated_settings(monkeypatch):
     monkeypatch.setattr(
         tutor, "setting",
         lambda name, default="": os.environ.get(name, default).strip())
-    for name in ("OLLAMA_API_KEY", "APP_PASSWORD", "OLLAMA_MODELS"):
+    for name in ("OLLAMA_API_KEY", "APP_PASSWORD", "OLLAMA_MODELS",
+                 "OLLAMA_MODE", "OLLAMA_DEFAULT_MODEL"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("OLLAMA_URL", DEAD_URL)
     tutor.load_settings()

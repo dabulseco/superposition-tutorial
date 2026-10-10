@@ -332,6 +332,7 @@ def test_model_list_is_not_fetched_again_on_every_redraw(ollama):
 # ---- class password ---------------------------------------------------------
 
 def test_chat_is_locked_until_the_class_password_is_given(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "test-key")      # hosted mode
     monkeypatch.setenv("APP_PASSWORD", "open-sesame")
     tutor.load_settings()
     at = AppTest.from_function(_chat_app).run()
@@ -392,3 +393,21 @@ def test_chain_weights_never_cross_even_for_short_wavelengths():
     # Gentle waves keep the original size.
     gentle, _, _ = _chain_frames(1, 0, phibit.DEFAULT_K, 1.5)
     assert plots_waves.chain_scale(gentle) == plots_waves.CHAIN_SCALE
+
+
+def test_picker_lists_every_model_and_defaults_to_gemma4_31b_cloud(ollama):
+    ollama.models = ["gemma4:26b", "nomic-embed-text:latest",
+                     {"name": "gemma4:31b-cloud", "remote_host": "https://ollama.com"},
+                     "gpt-oss:20b"]
+    at = AppTest.from_function(_chat_app).run()
+    assert at.selectbox[0].options == ["gemma4:26b", "nomic-embed-text:latest",
+                                       "gemma4:31b-cloud", "gpt-oss:20b"]
+    assert at.selectbox[0].value == "gemma4:31b-cloud"
+    assert "sent to Ollama's cloud service" in _captions(at)
+
+
+def test_no_class_password_is_asked_for_on_your_own_computer(ollama, monkeypatch):
+    monkeypatch.setenv("APP_PASSWORD", "open-sesame")     # but no API key
+    tutor.load_settings()
+    at = AppTest.from_function(_chat_app).run()
+    assert len(at.chat_input) == 1

@@ -38,8 +38,9 @@ The app opens at http://localhost:8501.
 
 For the tutor and the feedback, install [Ollama](https://ollama.com), pull a
 chat model (for example `ollama pull llama3.2`), and keep Ollama running.
-Pick a model in the sidebar under "Tutor". The list matches `ollama list`,
-and the top model is selected by default. Models whose names end in `cloud` run
+Pick a model in the sidebar under "Tutor". The list is every model in
+`ollama list`. `gemma4:31b-cloud` is selected by default if you have it
+(otherwise the top model). Models whose names end in `cloud` run
 on Ollama's servers even here; the page warns students when one is picked. Without Ollama every simulation
 still works; the chat and feedback say they are off.
 
@@ -143,7 +144,8 @@ with power shown as a readout.
 ## Host it online (Streamlit Community Cloud)
 
 A web host has no Ollama of its own, so the hosted app uses Ollama's cloud
-service. The app switches to this mode by itself when it finds an API key.
+service. The app switches to this mode by itself when it has an API key and
+finds no Ollama on the machine.
 In this mode what students type in the chat and in the answer boxes **is
 sent to Ollama's servers**; the app says so on the page.
 
@@ -164,12 +166,16 @@ Everyone can use the simulations. The tutor and the feedback ask for the
 class password first, so strangers who find the link can't spend your
 quota. Leave `APP_PASSWORD` out and they are open to anyone with the link.
 
-Optional: `OLLAMA_MODELS = "gemma4:31b, gpt-oss:120b"` sets which cloud
-models the sidebar offers (the first is the default).
+When hosted, the sidebar offers every model Ollama's cloud lists, with
+`gemma4:31b` selected by default. Optional settings:
 
-To try hosted mode on your own computer first, copy
+- `OLLAMA_MODELS = "gemma4:31b, gpt-oss:120b"` offers only these models.
+- `OLLAMA_DEFAULT_MODEL = "gpt-oss:120b"` changes the default.
+
+On a laptop that runs Ollama, the app uses your local Ollama even when a
+key is present. To try hosted mode there, copy
 `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml`, fill it in,
-and run the app. Never commit that file or put the key in the code.
+add `OLLAMA_MODE = "hosted"`, and run the app. Never commit that file or put the key in the code.
 
 ## Code layout
 

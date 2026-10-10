@@ -605,6 +605,7 @@ def test_footer_warns_when_a_cloud_model_is_picked_locally(ollama):
 
 
 def test_tyu_gives_no_feedback_until_the_class_password_is_given(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "test-key")      # hosted mode
     monkeypatch.setenv("APP_PASSWORD", "open-sesame")
     tutor.load_settings()
     at = submit(tyu(), "q1", MY_ANSWER)

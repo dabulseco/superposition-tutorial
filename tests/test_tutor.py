@@ -208,3 +208,71 @@ def test_normalize_math_turns_bracket_math_into_dollar_math():
     assert tutor.normalize_math(r"So \(u = 2a\) and \[x = 1\] ok") == \
         "So $u = 2a$ and $$x = 1$$ ok"
     assert tutor.normalize_math("plain $x$ text") == "plain $x$ text"
+
+
+# ---- local or hosted, and which model is the default ------------------------
+
+def _settings(monkeypatch, local_running, **env):
+    monkeypatch.delenv("OLLAMA_URL", raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setattr(tutor, "_local_ollama_running", lambda: local_running)
+    tutor.load_settings()
+
+
+def test_a_key_on_a_laptop_with_ollama_running_stays_local(monkeypatch):
+    _settings(monkeypatch, True, OLLAMA_API_KEY="k")
+    assert not tutor.HOSTED
+    assert tutor.OLLAMA_URL == "http://localhost:11434"
+
+
+def test_a_key_with_no_local_ollama_means_hosted(monkeypatch):
+    _settings(monkeypatch, False, OLLAMA_API_KEY="k")
+    assert tutor.HOSTED
+    assert tutor.OLLAMA_URL == "https://ollama.com"
+
+
+def test_no_key_is_always_local(monkeypatch):
+    _settings(monkeypatch, False)
+    assert not tutor.HOSTED
+
+
+def test_hosted_mode_can_be_forced_for_a_trial_run_on_a_laptop(monkeypatch):
+    _settings(monkeypatch, True, OLLAMA_API_KEY="k", OLLAMA_MODE="hosted")
+    assert tutor.HOSTED and tutor.OLLAMA_URL == "https://ollama.com"
+
+
+def test_hosted_offers_the_whole_cloud_catalogue_by_default(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "k")
+    tutor.load_settings()
+    ollama.models = ["a", "gemma4:31b", "b", "c"]
+    assert tutor.list_models() == ["a", "gemma4:31b", "b", "c"]
+
+
+def test_hosted_list_can_still_be_narrowed_with_a_setting(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "k")
+    monkeypatch.setenv("OLLAMA_MODELS", "c, a")
+    tutor.load_settings()
+    ollama.models = ["a", "gemma4:31b", "b", "c"]
+    assert tutor.list_models() == ["c", "a"]
+
+
+def test_default_model_is_gemma4_31b_cloud_locally():
+    models = ["gemma4:26b", "gemma4:31b-cloud", "gpt-oss:20b"]
+    assert tutor.default_model(models) == "gemma4:31b-cloud"
+
+
+def test_default_model_is_the_cloud_gemma_when_hosted(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "k")
+    tutor.load_settings()
+    assert tutor.default_model(["gpt-oss:20b", "gemma4:31b"]) == "gemma4:31b"
+
+
+def test_default_falls_back_to_the_first_model_if_gemma_is_missing():
+    assert tutor.default_model(["model-newest", "model-older"]) == "model-newest"
+
+
+def test_default_model_can_be_set(monkeypatch):
+    monkeypatch.setenv("OLLAMA_DEFAULT_MODEL", "gpt-oss:20b")
+    tutor.load_settings()
+    assert tutor.default_model(["gemma4:31b-cloud", "gpt-oss:20b"]) == "gpt-oss:20b"

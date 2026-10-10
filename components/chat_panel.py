@@ -38,8 +38,10 @@ def _models(url: str, hosted: bool, offered: tuple) -> tuple:
 def model_picker():
     """
     Sidebar dropdown of Ollama models.
-    Local: the installed models; the default is the first one, i.e. the top
-    line of `ollama list`. Hosted: the short list in tutor.HOSTED_MODELS.
+    Local: every installed model. Hosted: every model the cloud service
+    lists (or only those named in OLLAMA_MODELS). The model selected at
+    first is tutor.default_model(): gemma4:31b-cloud locally, gemma4:31b
+    when hosted, or the top of the list if that model isn't there.
 
     The choice is remembered in st.session_state so every page's chat (and
     the feedback on Test Your Understanding) uses the same model.
@@ -62,12 +64,16 @@ def model_picker():
         if error:
             st.warning(error)
         elif tutor.HOSTED:
-            model = st.selectbox("Model (Ollama cloud)", models, index=0,
+            model = st.selectbox("Model (Ollama cloud)", models,
+                                 index=models.index(tutor.default_model(models)),
                                  key="tutor_model_choice")
         else:
-            model = st.selectbox("Model (installed in Ollama)", models, index=0,
+            model = st.selectbox("Model (installed in Ollama)", models,
+                                 index=models.index(tutor.default_model(models)),
                                  key="tutor_model_choice",
-                                 help="Listed in the same order as `ollama list`.")
+                                 help="Listed in the same order as `ollama "
+                                      "list`. Names ending in \"cloud\" run on "
+                                      "Ollama's servers.")
 
         if tutor.HOSTED:
             # A web host wipes its files on restart, so a log there would
@@ -85,10 +91,14 @@ def model_picker():
 
 def tutor_unlocked(key: str) -> bool:
     """
-    Ask for the class password, if one is set (APP_PASSWORD).
+    Ask for the class password, if one is set (APP_PASSWORD) and the app
+    is hosted.
     Returns True once the student may use the tutor.
     """
-    if not tutor.APP_PASSWORD or st.session_state.get("tutor_unlocked"):
+    # The password protects the cloud quota of a hosted app. On your own
+    # computer there is nothing to protect, so it isn't asked for.
+    if (not tutor.HOSTED or not tutor.APP_PASSWORD
+            or st.session_state.get("tutor_unlocked")):
         return True
 
     with st.form(f"tutor_password_{key}"):
