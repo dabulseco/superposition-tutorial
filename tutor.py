@@ -164,74 +164,70 @@ def list_models() -> list[str]:
 SUGGESTION_MARKER = "NEXT QUESTIONS:"
 MAX_SUGGESTIONS = 3
 
-# Shown before the student has asked anything.
-STARTER_QUESTIONS = [
-    "What is the difference between a superposition and a mixture?",
-    "How should I decide what to predict here?",
-    "What does the relative phase φ change?",
-]
-
-# Short reference notes the tutor must stay consistent with. Later, this is
-# where retrieved passages from the RAG corpus (textbook, lecture notes)
-# will be inserted instead of a fixed block.
-REFERENCE_NOTES = """
-- A spin-1/2 state can be drawn as a Bloch vector r. Pure states (including
-  superpositions) lie ON the sphere, |r| = 1. Mixtures lie INSIDE, |r| < 1.
-- Born rule for spin-1/2: measuring along unit axis n gives "+" with
-  probability P(+) = (1 + r . n) / 2.
-- The superposition cos(theta/2)|0> + e^{i phi} sin(theta/2)|1> has Bloch
-  vector (sin theta cos phi, sin theta sin phi, cos theta).
-- The matching mixture ("|0> with prob cos^2(theta/2), else |1>") has Bloch
-  vector (0, 0, cos theta). It has no phase, so it has no x or y component.
-- Along z the two give identical statistics. Along any axis with an x or y
-  component, they can differ. That difference is how experiments tell a
-  superposition from "one or the other, we just don't know which".
-- Density matrix rho = (I + r . sigma)/2. Off-diagonal entries (coherences)
-  carry the relative phase and are zero for the mixture.
-- Relative phase is physical: (|0>+|1>)/sqrt2 and (|0>-|1>)/sqrt2 have the
-  same z statistics but opposite x results. A global phase has no effect.
-- Each single measurement outcome is random; only the statistics over many
-  shots are predictable.
-"""
+# Reference notes the tutor must stay consistent with: one Markdown file per
+# page (named after the page's id) plus shared.md, which is sent on every
+# page. To give the tutor more background later (for example a study guide's
+# instructions), add or edit files in this folder. No code change is needed.
+NOTES_DIR = Path(__file__).parent / "content" / "notes"
 
 
-def build_system_prompt(sim: dict) -> str:
+def load_notes(page_id: str, notes_dir: Path | None = None) -> str:
     """
-    Write the tutor's instructions, including the live simulation settings.
-
-    `sim` is a dictionary built in app.py. It holds the current sliders,
-    probabilities, the student's prediction, and (if run) the results.
+    Return the shared notes followed by this page's notes.
+    A page without a notes file simply gets the shared notes.
     """
-    revealed = sim["experiment_ran"]
+    folder = NOTES_DIR if notes_dir is None else Path(notes_dir)
+    parts = []
+    for name in ("shared", page_id):
+        path = folder / f"{name}.md"
+        if path.is_file():
+            parts.append(path.read_text(encoding="utf-8").strip())
+    return "\n\n".join(parts)
 
-    if revealed:
-        numbers = (
-            f"- Theory: P(+) superposition = {sim['p_pure']:.3f}, "
-            f"P(+) mixture = {sim['p_mix']:.3f}\n"
-            f"- Simulated results ({sim['n_shots']} shots each): "
-            f"superposition {sim['plus_pure']} '+', "
-            f"mixture {sim['plus_mix']} '+'\n"
-        )
-        reveal_rule = "The student has already run the experiment, so you may discuss these numbers."
+
+def build_system_prompt(context: dict, notes_dir: Path | None = None) -> str:
+    """
+    Write the tutor's instructions for one page, including its live settings.
+
+    `context` is a dictionary each page builds to describe itself:
+        page_id         short name of the page; also its notes file name
+        page_title      the title the student sees
+        controls        what the student can see or change on the page
+        settings_lines  list of lines describing the current settings
+        results_lines   list of lines with results (sent only if revealed)
+        revealed        True once the student has run or measured
+        hold_back       what must not be given away before that
+        extra_rules     optional list of further rules for this page
+    """
+    settings = "\n".join(f"- {line}" for line in context["settings_lines"])
+    results = context.get("results_lines", [])
+
+    if context["revealed"]:
+        numbers = "\n".join(f"- {line}" for line in results)
+        reveal_rule = ("The student has already run the experiment, so you "
+                       "may discuss these numbers." if results else "")
     else:
-        numbers = "- (The student has not run the experiment yet.)\n"
+        numbers = "- (The student has not run the experiment yet.)"
         reveal_rule = (
-            "The student has NOT run the experiment yet. Do not state the "
-            "probabilities for the current axis or whether the two states will "
-            "differ there. Help them reason toward a prediction instead."
+            "The student has NOT run the experiment yet. Do not state "
+            f"{context.get('hold_back', 'the result')}. Help them reason "
+            "toward a prediction instead."
         )
+
+    extra_rules = "\n".join(context.get("extra_rules", []))
 
     return f"""You are a patient physics tutor helping an undergraduate use an
-interactive simulation that compares a quantum superposition with a classical
-mixture of spin-1/2 states.
+interactive primer on superposition. Its topics are: classical bits and a
+spinning coin; coupled oscillators; electrons and qubits; superposition
+compared with a classical mixture; and phi-bits (sound-like waves on a chain
+of weights and springs). The student is on the page "{context['page_title']}".
 
 HOW TO ANSWER
-- Use plain language at the level of a first quantum mechanics course.
+- Use plain language for a STEM major who is new to quantum ideas.
 - Keep answers short: usually 3 to 6 sentences. Offer to go deeper.
-- Tie your answer to what the student can see or try in the simulation
-  (sliders for theta and phi, the measurement axis, the Bloch sphere, the
-  P(+) sweep plot, the density matrices).
-- If a question is outside this topic, say so briefly and steer back.
+- Tie your answer to what the student can see or try on this page
+  ({context['controls']}).
+- If a question is outside this topic, say so in one sentence and steer back.
 - If you are not sure, say so rather than guessing.
 
 GUIDE, DON'T TELL
@@ -272,16 +268,14 @@ the student has not seen yet. Do not mention this block in your reply.
   the numbers given below or ones you compute from the formulas in the notes.
 
 {reveal_rule}
+{extra_rules}
 
-CURRENT SIMULATION SETTINGS
-- theta = {sim['theta']} deg, phi = {sim['phi']} deg
-- Superposition: {sim['state_text']}
-- Mixture: |0> with probability {sim['p0']:.3f}, |1> with probability {1 - sim['p0']:.3f}
-- Measurement axis: tilt {sim['m_polar']} deg from +z, rotated {sim['m_azim']} deg around z ({sim['axis_name']})
-- Student's prediction: {sim['prediction']}
+CURRENT SETTINGS ON THE PAGE
+{settings}
 {numbers}
+
 REFERENCE NOTES
-{REFERENCE_NOTES}"""
+{load_notes(context['page_id'], notes_dir)}"""
 
 
 # -----------------------------------------------------------------------------
@@ -439,7 +433,7 @@ def hide_thinking(pieces):
 # 4. Optional local log
 # -----------------------------------------------------------------------------
 
-def log_interaction(path: Path, model: str, sim: dict,
+def log_interaction(path: Path, model: str, context: dict,
                     question: str, answer: str) -> None:
     """
     Append one question/answer pair to a JSON Lines file (one record per line).
@@ -449,7 +443,8 @@ def log_interaction(path: Path, model: str, sim: dict,
     record = {
         "time_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "model": model,
-        "simulation": {k: v for k, v in sim.items() if k != "state_text"},
+        "page": context["page_id"],
+        "settings": settings_text(context),
         "question": question,
         "answer": answer,
     }
@@ -461,19 +456,13 @@ def log_interaction(path: Path, model: str, sim: dict,
 # 5. Downloadable transcript
 # -----------------------------------------------------------------------------
 
-def settings_text(sim: dict) -> str:
-    """One line describing the simulation when a question was asked."""
-    text = (f"theta = {sim['theta']} deg, phi = {sim['phi']} deg; "
-            f"measurement axis: {sim['axis_name']} "
-            f"(tilt {sim['m_polar']} deg, rotation {sim['m_azim']} deg); "
-            f"prediction: {sim['prediction']}; ")
-    if sim["experiment_ran"]:
-        text += (f"experiment run with {sim['n_shots']} shots: "
-                 f"superposition {sim['plus_pure']} '+', "
-                 f"mixture {sim['plus_mix']} '+'")
-    else:
-        text += "experiment not yet run"
-    return text
+def settings_text(context: dict) -> str:
+    """One line describing the page when a question was asked."""
+    text = "; ".join(context["settings_lines"])
+    if not context["revealed"]:
+        return f"{text}; experiment not yet run" if text else "experiment not yet run"
+    results = "; ".join(context.get("results_lines", []))
+    return "; ".join(part for part in (text, results) if part)
 
 
 def _speaker(msg: dict) -> str:
@@ -486,16 +475,15 @@ def _source(msg: dict) -> str:
             else "typing")
 
 
-def conversation_markdown(chat: list[dict]) -> str:
+def conversation_markdown(chat: list[dict], title: str = "Tutor conversation") -> str:
     """The whole conversation as a Markdown document."""
     exported = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    lines = ["# Superposition vs. Mixture: tutor conversation", "",
-             f"Exported (UTC): {exported}", ""]
+    lines = [f"# {title}", "", f"Exported (UTC): {exported}", ""]
     for msg in chat:
         lines += [f"## {_speaker(msg)}", ""]
         if msg["role"] == "user":
             lines += [f"*Time (UTC): {msg.get('time', 'unknown')}*  ",
-                      f"*Simulation: {msg.get('settings', 'unknown')}*  ",
+                      f"*Page settings: {msg.get('settings', 'unknown')}*  ",
                       f"*Asked by: {_source(msg)}*", ""]
         else:
             lines += [f"*Model: {msg.get('model', 'unknown')}*", ""]
@@ -506,20 +494,59 @@ def conversation_markdown(chat: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def conversation_html(chat: list[dict]) -> str:
+# Shared by every downloadable web page (conversation and My Journey).
+PAGE_STYLE = """
+  body { font-family: system-ui, sans-serif; max-width: 46rem;
+         margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }
+  section { border-left: 4px solid #999; padding: 0.2rem 1rem; margin: 1rem 0; }
+  section.user { border-color: #c98a00; }
+  section.assistant { border-color: #1f5fbf; }
+  h2 { font-size: 1rem; margin: 0.4rem 0 0; }
+  .note { color: #666; font-size: 0.85rem; margin: 0.2rem 0 0.6rem; }
+  .text { white-space: pre-wrap; }
+"""
+
+
+def html_page(title: str, body: str) -> str:
+    """
+    Wrap already-escaped HTML in one self-contained web page. Math written
+    with $...$ is drawn by MathJax when the reader is online, and stays
+    readable as plain text when they are not.
+    """
+    exported = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{html.escape(title)}</title>
+<style>{PAGE_STYLE}</style>
+<script>
+  MathJax = {{ tex: {{ inlineMath: [["$", "$"]] }} }};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+<h1>{html.escape(title)}</h1>
+<p class="note">Exported (UTC): {exported}</p>
+{body}
+</body>
+</html>
+"""
+
+
+def conversation_html(chat: list[dict], title: str = "Tutor conversation") -> str:
     """
     The whole conversation as one self-contained web page.
 
     All text is escaped, so nothing a student or the model typed can run as
-    code. Math written with $...$ is drawn by MathJax when the reader is
-    online, and stays readable as plain text when they are not.
+    code.
     """
-    exported = datetime.now(timezone.utc).isoformat(timespec="seconds")
     parts = []
     for msg in chat:
         if msg["role"] == "user":
             note = (f"Time (UTC): {html.escape(str(msg.get('time', 'unknown')))}"
-                    f"<br>Simulation: {html.escape(str(msg.get('settings', 'unknown')))}"
+                    f"<br>Page settings: {html.escape(str(msg.get('settings', 'unknown')))}"
                     f"<br>Asked by: {_source(msg)}")
         else:
             note = f"Model: {html.escape(str(msg.get('model', 'unknown')))}"
@@ -535,32 +562,4 @@ def conversation_html(chat: list[dict]) -> str:
             f'<div class="text">{html.escape(msg["content"])}</div>\n'
             f"{suggested}"
             f"</section>")
-
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Superposition vs. Mixture: tutor conversation</title>
-<style>
-  body {{ font-family: system-ui, sans-serif; max-width: 46rem;
-         margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #222; }}
-  section {{ border-left: 4px solid #999; padding: 0.2rem 1rem; margin: 1rem 0; }}
-  section.user {{ border-color: #c98a00; }}
-  section.assistant {{ border-color: #1f5fbf; }}
-  h2 {{ font-size: 1rem; margin: 0.4rem 0 0; }}
-  .note {{ color: #666; font-size: 0.85rem; margin: 0.2rem 0 0.6rem; }}
-  .text {{ white-space: pre-wrap; }}
-</style>
-<script>
-  MathJax = {{ tex: {{ inlineMath: [["$", "$"]] }} }};
-</script>
-<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-</head>
-<body>
-<h1>Superposition vs. Mixture: tutor conversation</h1>
-<p class="note">Exported (UTC): {exported}</p>
-{chr(10).join(parts)}
-</body>
-</html>
-"""
+    return html_page(title, "\n".join(parts))
