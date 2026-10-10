@@ -426,7 +426,7 @@ The items are the spec's drafts. They live in `content/quick_checks.yaml`, so th
 
 ## Build notes (what was built, and where it differs from the plan above)
 
-Phases 0 to 8 are built on the branch `primer-v2`, with 207 automated tests
+Phases 0 to 8 are built on the branch `primer-v2`, with 247 automated tests
 passing. Phase 9's hands-on walk-through and Phase 10 are yours.
 
 Checked against your real local Ollama (model `gpt-oss:20b`): feedback
@@ -452,10 +452,32 @@ Differences from the plan:
 | Footer checked on every page by test | Checked on the home page by test; drawn by `app.py` after every page | Streamlit's test runner opens other pages outside `app.py` |
 | `components/plots.py` only | Plus `components/plots_waves.py` for the spring and chain animations | Keeps each file a readable size |
 
+An independent review of the whole branch then found problems, which were
+fixed (each with a test that failed first):
+
+- Sliders, results, and predictions were lost when a student left a page and came back. They are now kept.
+- A prediction could be edited after the result appeared, to "match". It is now locked once the result shows.
+- Several messages outlived the settings they described (for example "Ran 100 measurements!" after the slider moved).
+- The page said "answers come from a model running on this computer" even when a cloud model (name ending in `cloud`) was picked in local Ollama. It now warns that text goes to Ollama's cloud, on the chat, the answer boxes, and the footer.
+- The footer said nothing is stored even with the local log box ticked. It now says the log is on.
+- My Journey scored "about how many?" predictions as misses unless exact. Only either/or predictions are tallied now.
+- The sidebar progress list lagged one step behind.
+- The rubric checks were too easy to fool: one-letter "evidence" was accepted, and the give-away check missed half of a two-part idea while rejecting harmless feedback. Both are tighter.
+- Hand-editing mistakes in `questions.yaml` and `quick_checks.yaml` that used to crash or be silently ignored (a typo like `key_idea:`, a file saved in the wrong encoding, an unknown preset) now produce a message naming the file and the problem.
+
+Left as they are (small; your call):
+
+- Topic 2 animation: with the Go deeper spring changed, the motion jumps when the loop restarts. Play stops after 5 loops (12 on Topic 4); press Play again.
+- Go deeper page: the "P(+) for every tilt" plot is visible before the student predicts, as in the original app, so it can give the prediction away.
+- Test Your Understanding: if feedback fails for a reason other than Ollama being unreachable, the answer is saved but does not appear in My Journey.
+- In hosted mode, "Discuss this question" pressed before the class password is entered does not start the chat by itself; the student types the first message.
+- Each press of a quick check's Check button adds a line to My Journey.
+
 Things to know:
 
 - **Holding back results is prompt-based.** The tutor is told not to reveal a result before the student predicts. With `gpt-oss:20b` it mostly complied after the rule was strengthened, but it still hinted. Try other models in the pilot.
 - **Two older copies of the app are still running** on this laptop from October 5 (process ids 12825 and 13902). They now serve the new code. Close them if you don't need them.
+- **The rubric checks are a safety net, not a guarantee.** They work by matching words, so the model can still credit a negated statement ("it is NOT a combination…") or give an idea away in different vocabulary. Read a sample of feedback before relying on a rubric.
 - **Rubric feedback can borrow vocabulary** from a key idea the student hasn't reached (for example "think about what weight or amplitude would do"). The code check only blocks feedback that repeats most of a key idea's words.
 
 ## Deferred until there is IRB approval or a campus server

@@ -39,7 +39,8 @@ The app opens at http://localhost:8501.
 For the tutor and the feedback, install [Ollama](https://ollama.com), pull a
 chat model (for example `ollama pull llama3.2`), and keep Ollama running.
 Pick a model in the sidebar under "Tutor". The list matches `ollama list`,
-and the top model is selected by default. Without Ollama every simulation
+and the top model is selected by default. Models whose names end in `cloud` run
+on Ollama's servers even here; the page warns students when one is picked. Without Ollama every simulation
 still works; the chat and feedback say they are off.
 
 To use Ollama on another machine: `OLLAMA_URL=http://<host>:11434 streamlit run app.py`
