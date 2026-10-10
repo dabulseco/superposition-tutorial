@@ -1,0 +1,198 @@
+# Text shown on each page of the primer.
+#
+# The titles, introductions, and button labels follow the Superposition State
+# Primer created at Spelman College, with two approved wording changes:
+#   Topic 1: "experiencing a mix, or combination" -> "in a combination"
+#   Topic 3: "hovering in a mixed state between the two" -> "in a combination
+#            of the two" ("mixed state" is the technical term for a classical
+#            mixture, which is the opposite idea)
+#
+# Edit the text here; no code change is needed. Text is Markdown.
+
+home:
+  title: "Superposition State Primer"
+  intro: >-
+    An interactive exploration of states, normal modes, qubits, and wave
+    superpositions designed for STEM majors.
+  starter_questions:
+    - "What is a superposition, in one or two sentences?"
+    - "How are the four topics connected?"
+    - "Which topic should I start with?"
+
+t1:
+  title: "Bits vs. Superposition"
+  intro: >-
+    A classical bit is always in exactly one of two states. A superposition
+    is a combination of states at the same time. This page puts the two side
+    by side.
+  classical_heading: 'The Classical "Bit" (Normal World)'
+  classical_text: |
+    In our everyday world and in standard computers, a **bit** is something
+    that must be in exactly one of two states. It is physically impossible
+    for it to be both at the same time.
+
+    - A light switch (It is either completely **ON** or completely **OFF**).
+    - Computer voltage (Either **0 Volts** or **5 Volts**).
+  superposition_heading: "Superposition (Quantum & Waves)"
+  superposition_text: |
+    **Superposition** means a system is in a combination of multiple states
+    at the exact same time. It hasn't "picked" a single state yet.
+
+    - **The Coin Analogy:** Imagine a coin spinning very fast on its side.
+      While spinning, it is a blur—it is a combination of heads and tails
+      simultaneously.
+  analogy_breaks: |
+    The spinning coin is a helpful picture, but it is not a true
+    superposition.
+
+    - Which way the coin lands is decided by ordinary physics (its speed,
+      its tilt, the table). We just can't follow it. The coin is "secretly
+      on its way to one answer", which physicists call a **classical
+      mixture**.
+    - A real superposition is different in a way an experiment can show: its
+      two parts have a **relative phase**, and that lets them interfere. A
+      coin has no phase and can't interfere.
+
+    The page **Go deeper: Superposition vs. mixture** lets you run the
+    experiment that tells the two apart.
+  things_to_try:
+    - "Set the switch, then measure it several times. Does the result ever change?"
+    - "Measure the coin, reset, and measure again. Can you predict one slap?"
+    - "Measure 100 coins a few times. How close to 50 heads do you get?"
+  starter_questions:
+    - "What makes a bit different from a superposition?"
+    - "Why can't I predict a single coin slap?"
+    - "Is a spinning coin really in a superposition?"
+
+t2:
+  title: "Jiggling Springs (Coupled Oscillators)"
+  intro: |
+    Imagine two weights connected by springs. Because they are connected,
+    they have two natural, simple ways they like to jiggle, called
+    **Patterns** or **Modes**.
+
+    Remarkably, you don't have to pick just one! The system can exist in a
+    **Superposition**, which means it plays both jiggling patterns at the
+    exact same time, creating a complex bouncy dance.
+  positions_heading: "1. Set Initial Positions (Pull the weights!)"
+  presets_heading: "2. Quick Presets"
+  presets_note: >-
+    Note: You can play around with the initial positions in Box #1 to create
+    your own custom Mix Pattern!
+  trace_heading: "Tracking Weight #1 Over Time"
+  trace_caption: >-
+    Watch the blue line. When in superposition, the wave looks complicated
+    because it's a mix of slow and fast!
+  spectrum_heading: "Fourier Transform (Which patterns are playing?)"
+  spectrum_caption: >-
+    This chart detects which patterns are currently running. Notice how the
+    Superposition state lights up **both** bars at once!
+  things_to_try:
+    - "Press each preset and watch which bars light up."
+    - "Pull only one weight and leave the other at the center. What do you get?"
+    - "Find starting positions where Pattern 2 is three times stronger than Pattern 1."
+  starter_questions:
+    - "What is a pattern (normal mode)?"
+    - "Why does pulling one weight start both patterns?"
+    - "How is this like a qubit?"
+
+t3:
+  title: "Electrons & Quantum Bits (Qubits)"
+  intro: |
+    Imagine an electron is like a tiny magnet that can point **UP** or
+    **DOWN**. Because it is so tiny, it follows Quantum rules.
+
+    It doesn't have to just be Up or Down—it can be in a **Superposition**,
+    in a combination of the two.
+
+    Scientists use this weird combination to store information. We call this
+    a Quantum Bit, or **Qubit**.
+  prepare_heading: "1. Prepare Your Mix"
+  prepare_text: >-
+    Drag the slider to alter the probability. Watch the arrow move closer to
+    the poles depending on your mix.
+  experiment_heading: "2. The Quantum Experiment"
+  experiment_text: |
+    Quantum rules say measuring forces it to snap strictly UP or DOWN.
+
+    **Experiment:** Will your real-world measurements match the probability
+    you set?
+  sample_note: "(Notice how larger sample sizes align closer to your set probability mix!)"
+  things_to_try:
+    - "Set 70% UP. Measure 1x several times. Can you predict a single result?"
+    - "Measure 100x, then again and again. Watch the fraction settle."
+    - "Set 100% UP. Is there anything random left?"
+  starter_questions:
+    - "Why does the arrow snap when I measure?"
+    - "Why don't I get exactly 70 UP out of 100?"
+    - "How is a qubit different from a spinning coin?"
+
+t3b:
+  title: "Go deeper: Superposition vs. mixture"
+  intro: |
+    In Topic 1, a spinning coin stood in for a superposition. In Topic 3,
+    one slider set the chance of UP. Both leave a question open: is a
+    superposition just "really UP or DOWN, and we don't know which yet"?
+
+    That description is a **classical mixture**, and it is a different
+    thing. Two states can give the same results along one axis and different
+    results along another. Here you build both, add the **relative phase φ**
+    that Topic 3 left out, choose how to measure, predict, then run the
+    experiment.
+  things_to_try:
+    - "Set θ = 90°, φ = 0°. Measure along z, then along x."
+    - "Keep measuring along x and change φ to 180°. What happens to the superposition? To the mixture?"
+    - "Set φ = 90° and measure along y."
+    - "Is there any θ where the two states can never be told apart?"
+  starter_questions:
+    - "What is the difference between a superposition and a mixture?"
+    - "How should I decide what to predict here?"
+    - "What does the relative phase φ change?"
+
+t4:
+  title: 'Sound-like Waves (The "Phi-Bit")'
+  intro: |
+    We don't need a tiny electron to use superposition! We can build
+    something similar using normal objects.
+
+    Imagine a long chain of heavy weights connected by springs. If you shake
+    one end, a wave travels down the chain—very similar to how sound waves
+    travel through the air.
+  presets_heading: "1. Quick Base States"
+  mixer_heading: "2. Experiment: The Wave Mixer"
+  mixer_text: |
+    **Fact:** A Superposition is **any** combination of State 0 and State 1!
+
+    Try mixing the waves using the sliders below. Notice how an uneven mix
+    creates a "lumpy" traveling wave, but a perfect 50/50 mix creates a
+    special balanced superposition called a **Standing Wave**.
+  same_different: |
+    **The same as a qubit:** the phi-bit's state is a combination of two
+    basic states (the left wave and the right wave), each with an amplitude,
+    plus a relative phase. It can be drawn on the same sphere as a qubit,
+    and "share of State 1" uses the same formula as a qubit's probability.
+
+    **Different from a qubit:** this is an ordinary, classical wave. You can
+    watch both waves at once, and looking doesn't change anything. Measuring
+    a qubit gives only UP or DOWN, and the state snaps to the result.
+  things_to_try:
+    - "Press each preset and watch which way the wave travels."
+    - "Make an uneven mix. Which way does the lumpy wave drift?"
+    - "Set a 50/50 mix, then move the phase slider. Watch the still points."
+  starter_questions:
+    - "What are State 0 and State 1 for a phi-bit?"
+    - "Why does a 50/50 mix stand still?"
+    - "How is a phi-bit like a qubit, and how is it different?"
+
+tyu:
+  title: "Test Your Understanding"
+  intro: >-
+    Write your answer to each question in your own words. After you submit,
+    you get feedback and a simulation to revisit, and you can revise as many
+    times as you like. Every version you submit is kept below the question.
+
+journey:
+  title: "My Journey"
+  intro: >-
+    Everything you have done in the primer during this visit: predictions,
+    measurements, answers, feedback, and the questions you asked.

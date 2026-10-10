@@ -105,3 +105,75 @@ def test_seed_message_is_sent_as_the_first_question(ollama):
     chat = at.session_state["chat_tyu_q1"]
     assert chat[0]["content"] == "Question: X. My answer: Y."
     assert chat[1]["role"] == "assistant"
+
+
+# ---- prediction gate -------------------------------------------------------
+
+def _gate_app():
+    import streamlit as st
+    from components.prediction_gate import prediction_gate
+    theta = st.slider("theta", 0, 180, 90)
+    gate = prediction_gate("g", (theta,))
+    gate.ask_choice("Same or different?", ["same", "different"])
+    if gate.run_button("Run"):
+        st.write("RESULT")
+    st.write(f"prediction={gate.prediction} just_ran={gate.just_ran}")
+
+
+def _shown(at):
+    return " ".join(m.value for m in at.markdown)
+
+
+def test_gate_is_locked_until_a_prediction_is_made():
+    at = AppTest.from_function(_gate_app).run()
+    assert len(at.button) == 0
+    assert "Make a prediction" in " ".join(i.value for i in at.info)
+    assert "prediction=None" in _shown(at)
+
+
+def test_gate_runs_after_prediction_and_click():
+    at = AppTest.from_function(_gate_app).run()
+    at.radio[0].set_value("different").run()
+    assert "RESULT" not in _shown(at)
+    at.button[0].click().run()
+    assert "RESULT" in _shown(at)
+    assert "prediction=different just_ran=True" in _shown(at)
+    at.run()   # an unrelated rerun keeps the result but is not a new run
+    assert "RESULT" in _shown(at) and "just_ran=False" in _shown(at)
+
+
+def test_gate_relocks_and_clears_prediction_when_settings_change():
+    at = AppTest.from_function(_gate_app).run()
+    at.radio[0].set_value("different").run()
+    at.button[0].click().run()
+    at.slider[0].set_value(45).run()
+    assert "RESULT" not in _shown(at)
+    assert "prediction=None" in _shown(at)
+    assert at.radio[0].value == "Choose one"
+    assert "Settings changed" in " ".join(i.value for i in at.info)
+
+
+def test_changing_settings_before_running_keeps_the_prediction():
+    at = AppTest.from_function(_gate_app).run()
+    at.radio[0].set_value("same").run()
+    at.slider[0].set_value(45).run()
+    assert "prediction=same" in _shown(at)
+
+
+def _number_gate_app():
+    import streamlit as st
+    from components.prediction_gate import prediction_gate
+    gate = prediction_gate("n", ())
+    gate.ask_number("How many heads out of 100?", 0, 100)
+    if gate.run_button("Slap"):
+        st.write("RESULT")
+    st.write(f"prediction={gate.prediction}")
+
+
+def test_number_gate_unlocks_once_a_number_is_entered():
+    at = AppTest.from_function(_number_gate_app).run()
+    assert len(at.button) == 0
+    at.number_input[0].set_value(50).run()
+    assert "prediction=50" in _shown(at)
+    at.button[0].click().run()
+    assert "RESULT" in _shown(at)
