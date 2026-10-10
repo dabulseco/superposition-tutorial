@@ -1,0 +1,48 @@
+# DRAFT rubric. Not approved by the Spelman College team. NOT loaded by the app.
+#
+# To use any of it, copy a question's key_ideas and misconceptions into
+# questions.yaml (edit them first as you see fit) and restart the app.
+
+questions:
+  - id: q1
+    text: "What is a superposition state?"
+    revisit:
+      - {label: "Topic 3: the probability slider", page: t3}
+      - {label: "Go deeper: Superposition vs. mixture", page: t3b}
+    key_ideas:
+      - {id: q1.k1, text: "A superposition is a combination of two (or more) basic states at once."}
+      - {id: q1.k2, text: "Each part has a weight (amplitude) that sets how likely each measurement result is."}
+      - {id: q1.k3, text: "Measuring gives just one of the basic states."}
+      - {id: q1.k4, advanced: true, text: "It is not the same as being secretly one state or the other; the relative phase between the parts matters."}
+    misconceptions:
+      - {id: M-mixture, text: "A superposition is secretly one state and we just don't know which."}
+      - {id: M-classical-both, text: "It is both in the everyday sense, like two separate objects."}
+
+  - id: q2
+    text: "How does a physical phi-bit represented by a spring-mass chain demonstrate a superposition state?"
+    revisit:
+      - {label: "Topic 4: the Superposition preset and phase slider", page: t4, preset: superposition}
+    key_ideas:
+      - {id: q2.k1, text: "The chain supports two basic states: a left-traveling wave (State 0) and a right-traveling wave (State 1)."}
+      - {id: q2.k2, text: "Both waves can be present at once, in adjustable amounts."}
+      - {id: q2.k3, text: "An equal mix forms a standing wave; an uneven mix forms a lumpy traveling wave."}
+      - {id: q2.k4, text: "This parallels a qubit's two basis states and their amplitudes."}
+      - {id: q2.k5, advanced: true, text: "Unlike a qubit, both waves can be observed at once without the state snapping to one of them."}
+    misconceptions:
+      - {id: M-only-quantum, text: "Superposition only happens to tiny quantum objects."}
+      - {id: M-standing-is-nothing, text: "A standing wave means there are no waves."}
+
+  - id: q3
+    text: "What are the differences and similarities between a qubit and a coin resting on a table?"
+    revisit:
+      - {label: "Topic 1: Bits & Superposition", page: t1}
+      - {label: "Topic 3: Electrons & Qubits", page: t3}
+      - {label: "Go deeper: Superposition vs. mixture", page: t3b}
+    key_ideas:
+      - {id: q3.k1, text: "Similarity: both have two possible results (heads/tails, UP/DOWN), and looking gives one of them."}
+      - {id: q3.k2, text: "Difference: a resting coin is already in one definite state; it is a classical bit, not a superposition."}
+      - {id: q3.k3, text: "Difference: a qubit can be in a combination with amplitudes (and a phase), so its results are probabilistic."}
+      - {id: q3.k4, advanced: true, text: "Measuring a qubit changes its state, while looking at a coin doesn't; qubit superpositions can interfere and coins can't."}
+    misconceptions:
+      - {id: M-coin-superposition, text: "A resting coin is in superposition until you look."}
+      - {id: M-qubit-is-spinning-coin, text: "A qubit is just like a spinning coin."}

@@ -1,0 +1,46 @@
+# The three "Test Your Understanding" questions.
+# The question wording is from the Superposition State Primer created at
+# Spelman College and is kept exactly.
+#
+# TO ADD A RUBRIC
+# ---------------
+# Fill in key_ideas (and, if you like, misconceptions) for a question, save
+# this file, and restart the app. No code change is needed. From then on,
+# feedback for that question checks the student's answer against your key
+# ideas. A question with an empty key_ideas list gets general feedback: one
+# strength, one guiding question, and a simulation to revisit.
+#
+# Each key idea:        {id: q1.k1, text: "what a good answer says", advanced: false}
+# Each misconception:   {id: M-short-name, text: "the mistaken idea"}
+# Ids must be unique. "advanced: true" marks an idea that is a bonus, not
+# expected of every student.
+#
+# A draft rubric for all three questions is in questions.rubric-draft.yaml.
+#
+# Each "revisit" entry is a button shown with the feedback. `page` is one of
+# t1, t2, t3, t3b, t4. `preset` (optional) opens that page on a preset.
+
+questions:
+  - id: q1
+    text: "What is a superposition state?"
+    revisit:
+      - {label: "Topic 3: the probability slider", page: t3}
+      - {label: "Go deeper: Superposition vs. mixture", page: t3b}
+    key_ideas: []
+    misconceptions: []
+
+  - id: q2
+    text: "How does a physical phi-bit represented by a spring-mass chain demonstrate a superposition state?"
+    revisit:
+      - {label: "Topic 4: the Superposition preset and phase slider", page: t4, preset: superposition}
+    key_ideas: []
+    misconceptions: []
+
+  - id: q3
+    text: "What are the differences and similarities between a qubit and a coin resting on a table?"
+    revisit:
+      - {label: "Topic 1: Bits & Superposition", page: t1}
+      - {label: "Topic 3: Electrons & Qubits", page: t3}
+      - {label: "Go deeper: Superposition vs. mixture", page: t3b}
+    key_ideas: []
+    misconceptions: []

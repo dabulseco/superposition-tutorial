@@ -148,3 +148,31 @@ def test_dropped_connection_is_reported_not_silently_truncated(ollama):
     ollama.mode = "drop"
     with pytest.raises(tutor.OllamaUnavailable, match="before the answer was finished"):
         list(tutor.stream_answer("m", "sys", HISTORY))
+
+
+# ---- one-shot calls used for feedback ---------------------------------------
+
+def test_ask_text_returns_the_reply_without_thinking(ollama):
+    ollama.replies = ["<think>hmm</think>Good start."]
+    assert tutor.ask_text("m", "sys", "user text") == "Good start."
+    sent = ollama.requests[-1]
+    assert sent["stream"] is False
+    assert sent["messages"][1] == {"role": "user", "content": "user text"}
+
+
+def test_ask_json_sends_the_schema_and_parses_the_reply(ollama):
+    ollama.replies = ['{"level": "developing"}']
+    schema = {"type": "object"}
+    assert tutor.ask_json("m", "sys", "user", schema) == {"level": "developing"}
+    assert ollama.requests[-1]["format"] == schema
+
+
+def test_ask_json_raises_value_error_for_non_json(ollama):
+    ollama.replies = ["Sure! Here is my answer."]
+    with pytest.raises(ValueError):
+        tutor.ask_json("m", "sys", "user", {"type": "object"})
+
+
+def test_one_shot_calls_report_ollama_off():
+    with pytest.raises(tutor.OllamaUnavailable):
+        tutor.ask_text("m", "sys", "user")

@@ -286,33 +286,17 @@ REFERENCE NOTES
 # 3. Ask the model
 # -----------------------------------------------------------------------------
 
-def stream_answer(model: str, system_prompt: str, history: list[dict],
-                  suggestions: list | None = None):
+def _post_chat(payload: dict) -> requests.Response:
     """
-    Send the conversation to Ollama and yield the answer as it is written.
-
-    history     : list of {"role": "user"|"assistant", "content": "..."}
-                  The newest student question must be the last item.
-    suggestions : an empty list. When the answer is finished it holds the
-                  tutor's "questions to consider next", which are kept out
-                  of the answer text.
+    Send one request to Ollama's /api/chat and return the reply, after
+    turning every kind of failure into an OllamaUnavailable with a message
+    a student or instructor can act on.
     """
-    # Send only the role and text; messages also carry notes for the
-    # downloadable transcript (time, settings) that the model doesn't need.
-    messages = [{"role": "system", "content": system_prompt}]
-    messages += [{"role": m["role"], "content": m["content"]}
-                 for m in history[-MAX_HISTORY_MESSAGES:]]
-
-    payload = {
-        "model": model,
-        "messages": messages,
-        "stream": True,
-        "options": {"temperature": 0.3},   # low = steadier, less inventive
-    }
-
+    model = payload["model"]
     try:
         reply = requests.post(f"{OLLAMA_URL}/api/chat", json=payload,
-                              headers=_headers(), stream=True, timeout=(5, 300))
+                              headers=_headers(), stream=payload["stream"],
+                              timeout=(5, 300))
     except requests.RequestException as err:
         raise OllamaUnavailable(f"Could not reach Ollama at {OLLAMA_URL}.") from err
 
@@ -333,6 +317,73 @@ def stream_answer(model: str, system_prompt: str, history: list[dict],
             f"The model '{model}' could not answer: {detail}. "
             "If it is an embedding model (e.g. nomic-embed-text), pick a chat model instead."
         )
+    return reply
+
+
+def ask_text(model: str, system_prompt: str, user_text: str,
+             temperature: float = 0.3, response_format=None) -> str:
+    """
+    Ask one question and wait for the whole answer (no streaming). Used for
+    feedback on written answers, where the text is checked before the
+    student sees it. Private <think> notes are removed.
+    """
+    payload = {
+        "model": model,
+        "messages": [{"role": "system", "content": system_prompt},
+                     {"role": "user", "content": user_text}],
+        "stream": False,
+        "options": {"temperature": temperature},
+    }
+    if response_format is not None:
+        payload["format"] = response_format
+    reply = _post_chat(payload)
+    try:
+        body = reply.json()
+    except ValueError as err:
+        raise OllamaUnavailable(DROPPED_MESSAGE) from err
+    if "error" in body:
+        raise OllamaUnavailable(body["error"])
+    text = body.get("message", {}).get("content", "")
+    return "".join(hide_thinking([text])).strip()
+
+
+def ask_json(model: str, system_prompt: str, user_text: str, schema: dict) -> dict | list:
+    """
+    Ask for an answer in a fixed JSON shape. `schema` is a JSON schema that
+    Ollama uses to constrain what the model may write. Temperature 0 makes
+    the same answer get the same check each time.
+
+    Raises ValueError if the reply still isn't valid JSON, so the caller
+    can retry or fall back.
+    """
+    return json.loads(ask_text(model, system_prompt, user_text,
+                               temperature=0.0, response_format=schema))
+
+
+
+def stream_answer(model: str, system_prompt: str, history: list[dict],
+                  suggestions: list | None = None):
+    """
+    Send the conversation to Ollama and yield the answer as it is written.
+
+    history     : list of {"role": "user"|"assistant", "content": "..."}
+                  The newest student question must be the last item.
+    suggestions : an empty list. When the answer is finished it holds the
+                  tutor's "questions to consider next", which are kept out
+                  of the answer text.
+    """
+    # Send only the role and text; messages also carry notes for the
+    # downloadable transcript (time, settings) that the model doesn't need.
+    messages = [{"role": "system", "content": system_prompt}]
+    messages += [{"role": m["role"], "content": m["content"]}
+                 for m in history[-MAX_HISTORY_MESSAGES:]]
+
+    reply = _post_chat({
+        "model": model,
+        "messages": messages,
+        "stream": True,
+        "options": {"temperature": 0.3},   # low = steadier, less inventive
+    })
 
     # Ollama sends one JSON object per line while it writes.
     def pieces():
