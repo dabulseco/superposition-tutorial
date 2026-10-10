@@ -18,20 +18,23 @@ WHAT THIS FILE DOES
 1. list_models()          -> asks Ollama which models are installed.
                              The order matches `ollama list` (newest first),
                              so the first model is the app's default.
-2. build_system_prompt()  -> writes the tutor's instructions, including the
-                             CURRENT numbers from the simulation, so answers
-                             refer to what the student is looking at.
+2. build_system_prompt()  -> writes the tutor's instructions for one page:
+                             its rules, the page's CURRENT settings (so
+                             answers refer to what the student is looking
+                             at), and reference notes from content/notes/.
 3. stream_answer()        -> sends the conversation to the model and yields
                              the reply piece by piece (so text appears as it
                              is written). The tutor also proposes a few
                              questions to consider next; those are collected
                              separately so the app can show them as buttons.
+   ask_text() / ask_json() -> one question, one complete answer. Used for
+                             feedback on written answers (feedback.py).
 4. log_interaction()      -> optionally saves each question and answer to a
-                             local file (useful as research data; check your
-                             IRB protocol before turning it on with students).
+                             local file (do not use with students without an
+                             approved research protocol).
 5. conversation_markdown() / conversation_html()
                           -> turn the conversation into a file the student
-                             can download, share, or hand in for analysis.
+                             can download.
 
 SETUP (one time)
 ----------------

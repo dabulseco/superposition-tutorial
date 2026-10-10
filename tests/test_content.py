@@ -189,3 +189,11 @@ def test_quick_check_mistakes_are_named(tmp_path, change, problem):
     with pytest.raises(feedback.ContentError) as error:
         feedback.load_quick_checks(path, VALID_PAGES)
     assert "quick_checks.yaml" in str(error.value) and problem in str(error.value)
+
+
+def test_readme_and_code_never_name_newfos():
+    files = [ROOT / "README.md", ROOT / "app.py", ROOT / "tutor.py",
+             ROOT / "feedback.py", *(ROOT / "pages").glob("*.py"),
+             *(ROOT / "components").glob("*.py")]
+    for path in files:
+        assert "newfos" not in path.read_text().lower(), path.name

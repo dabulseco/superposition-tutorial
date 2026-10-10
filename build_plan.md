@@ -90,12 +90,12 @@ Not built: `data/store.py`, `data/schema.sql`, `instructor_app.py`, `config.yaml
 
 ## Phase 0 — Setup
 
-- [ ] Confirm the conda env: `conda activate superposition` then `python -c "import streamlit; print(streamlit.__version__)"`. It must print 1.48 or later (the base env has 1.42, which is too old). If the env is stale, recreate it: `conda create -n superposition python=3.12 -y && conda activate superposition && pip install -r requirements.txt`.
-- [ ] Add `pyyaml>=6.0` and `pytest>=8.0` to `requirements.txt`; `pip install -r requirements.txt`.
-- [ ] Add `pytest.ini` with `testpaths = tests` and `pythonpath = .`.
-- [ ] Run the current app once (`streamlit run app.py`) and ask the tutor one question, so you know the starting point works.
-- [ ] Create a branch: `git checkout -b primer-v2`.
-- [ ] Commit `superposition-primer-v2-spec.md` and `build_plan.md`.
+- [x] Confirm the conda env: `conda activate superposition` then `python -c "import streamlit; print(streamlit.__version__)"`. It must print 1.48 or later (the base env has 1.42, which is too old). If the env is stale, recreate it: `conda create -n superposition python=3.12 -y && conda activate superposition && pip install -r requirements.txt`.
+- [x] Add `pyyaml>=6.0` and `pytest>=8.0` to `requirements.txt`; `pip install -r requirements.txt`.
+- [x] Add `pytest.ini` with `testpaths = tests` and `pythonpath = .`.
+- [x] Run the current app once (`streamlit run app.py`) and ask the tutor one question, so you know the starting point works.
+- [x] Create a branch: `git checkout -b primer-v2`.
+- [x] Commit `superposition-primer-v2-spec.md` and `build_plan.md`.
 
 ## Phase 1 — Restructure into a multipage app (spec §4, §5.4, §7)
 
@@ -104,16 +104,16 @@ Result: the existing page runs as "Go deeper: Superposition vs. mixture" inside 
 ### Task 1.1 — Move the mixture physics out of `app.py`
 Files: create `physics/__init__.py`, `physics/mixture.py`, `tests/test_physics_mixture.py`; modify `app.py`.
 
-- [ ] Write tests first: `probability_plus` for θ=90°, φ=0 gives 0.5 along z and 1.0 along x for the superposition, 0.5 along both for the mixture; mixture Bloch vector has zero x and y; `density_matrix` of the mixture has zero off-diagonals; `simulate_shots` is repeatable for a fixed seed.
-- [ ] Move `unit_vector`, `bloch_vector_pure`, `bloch_vector_mixture`, `density_matrix`, `probability_plus`, `simulate_shots`, `describe_state` unchanged into `physics/mixture.py`.
-- [ ] `pytest tests/test_physics_mixture.py -v` passes. Commit.
+- [x] Write tests first: `probability_plus` for θ=90°, φ=0 gives 0.5 along z and 1.0 along x for the superposition, 0.5 along both for the mixture; mixture Bloch vector has zero x and y; `density_matrix` of the mixture has zero off-diagonals; `simulate_shots` is repeatable for a fixed seed.
+- [x] Move `unit_vector`, `bloch_vector_pure`, `bloch_vector_mixture`, `density_matrix`, `probability_plus`, `simulate_shots`, `describe_state` unchanged into `physics/mixture.py`.
+- [x] `pytest tests/test_physics_mixture.py -v` passes. Commit.
 
 ### Task 1.2 — Theme and shared plot helpers
 Files: create `components/__init__.py`, `components/theme.py`, `components/plots.py`.
 
-- [ ] `theme.py`: `COLOR_PURE`, `COLOR_MIX`, `COLOR_AXIS` (existing values) plus two more colorblind-safe colors for State 0 / State 1 and Pattern 1 / Pattern 2.
-- [ ] `plots.py`: move `_arrow`, `bloch_sphere_figure`, `results_figure`, `sweep_figure`, `_matrix_latex` here. Add `bloch_sphere_base()` (sphere + axes only) so Topic 3 and the state card can reuse it.
-- [ ] Commit.
+- [x] `theme.py`: `COLOR_PURE`, `COLOR_MIX`, `COLOR_AXIS` (existing values) plus two more colorblind-safe colors for State 0 / State 1 and Pattern 1 / Pattern 2.
+- [x] `plots.py`: move `_arrow`, `bloch_sphere_figure`, `results_figure`, `sweep_figure`, `_matrix_latex` here. Add `bloch_sphere_base()` (sphere + axes only) so Topic 3 and the state card can reuse it.
+- [x] Commit.
 
 ### Task 1.3 — Generalize the tutor prompt
 Files: modify `tutor.py`; create `content/notes/shared.md`, `content/notes/t3b_mixture.md`, `tests/test_tutor.py`.
@@ -136,23 +136,23 @@ tutor.load_notes(page_id) -> str   # shared.md + <page_id>.md; missing file = ""
 tutor.settings_text(context) -> str   # "; ".join(settings_lines) + run status
 ```
 
-- [ ] Tests first: prompt contains every settings line; contains results lines only when `revealed`; contains the "has NOT run" rule and the `hold_back` text when not revealed; contains the notes for the page and the shared notes; a missing notes file does not raise; existing `hide_thinking` and `split_suggestions` behave as now (tag split across pieces, decorated marker).
-- [ ] Move the current `REFERENCE_NOTES` text into `content/notes/t3b_mixture.md`.
-- [ ] Write `content/notes/shared.md` from spec §3.1 and §3.4: the one-story thread; "mixed state" means a classical mixture; where the coin analogy breaks; amplitude vs. power.
-- [ ] Rewrite `build_system_prompt` to take `context`. Keep the HOW TO ANSWER, GUIDE DON'T TELL, and NEXT QUESTIONS sections word for word. Add the two rules from §7.3: unsure → say so; off-topic → one sentence, then steer back.
-- [ ] Update `log_interaction` and `settings_text` to the new dictionary.
-- [ ] `pytest tests/test_tutor.py -v` passes. Commit.
+- [x] Tests first: prompt contains every settings line; contains results lines only when `revealed`; contains the "has NOT run" rule and the `hold_back` text when not revealed; contains the notes for the page and the shared notes; a missing notes file does not raise; existing `hide_thinking` and `split_suggestions` behave as now (tag split across pieces, decorated marker).
+- [x] Move the current `REFERENCE_NOTES` text into `content/notes/t3b_mixture.md`.
+- [x] Write `content/notes/shared.md` from spec §3.1 and §3.4: the one-story thread; "mixed state" means a classical mixture; where the coin analogy breaks; amplitude vs. power.
+- [x] Rewrite `build_system_prompt` to take `context`. Keep the HOW TO ANSWER, GUIDE DON'T TELL, and NEXT QUESTIONS sections word for word. Add the two rules from §7.3: unsure → say so; off-topic → one sentence, then steer back.
+- [x] Update `log_interaction` and `settings_text` to the new dictionary.
+- [x] `pytest tests/test_tutor.py -v` passes. Commit.
 
 ### Task 1.4 — Shared chat panel
 Files: create `components/chat_panel.py`, `tests/fake_ollama.py`; add to `tests/test_tutor.py`.
 
 Interface: `chat_panel(context, starter_questions, seed_message=None)` and `model_picker() -> (model | None, error | None)`. The conversation is stored under `st.session_state[f"chat_{page_id}"]`.
 
-- [ ] Move `tutor_model_picker`, `tutor_unlocked`, `suggested_questions`, `download_buttons`, `tutor_chat` from `app.py` into `chat_panel.py`, switched to the `context` dictionary. Rename the heading to "Ask your own questions" (§7.1).
-- [ ] `seed_message`: when given, it is sent as the first student message (used later by "Discuss this question").
-- [ ] `tests/fake_ollama.py`: a small local HTTP server answering `/api/tags` and `/api/chat` (streamed lines), with switches for "no models", "error 500", and "connection drops mid-stream".
-- [ ] Tests against the fake server: model list order and default; streaming; `<think>` hidden; a 500 gives `OllamaUnavailable` with the embedding-model hint; a dropped connection gives `OllamaUnavailable` and does not leave a half answer in the history.
-- [ ] Commit.
+- [x] Move `tutor_model_picker`, `tutor_unlocked`, `suggested_questions`, `download_buttons`, `tutor_chat` from `app.py` into `chat_panel.py`, switched to the `context` dictionary. Rename the heading to "Ask your own questions" (§7.1).
+- [x] `seed_message`: when given, it is sent as the first student message (used later by "Discuss this question").
+- [x] `tests/fake_ollama.py`: a small local HTTP server answering `/api/tags` and `/api/chat` (streamed lines), with switches for "no models", "error 500", and "connection drops mid-stream".
+- [x] Tests against the fake server: model list order and default; streaming; `<think>` hidden; a 500 gives `OllamaUnavailable` with the embedding-model hint; a dropped connection gives `OllamaUnavailable` and does not leave a half answer in the history.
+- [x] Commit.
 
 ### Task 1.5 — Prediction gate
 Files: create `components/prediction_gate.py`; test in `tests/test_pages.py` (Task 1.7).
@@ -168,115 +168,115 @@ gate.prediction     # the student's prediction, or None
 gate.ran            # True after Run, until the signature changes
 ```
 
-- [ ] When `signature` differs from the one saved at the last run, clear `ran` **and** reset the prediction, and show "Settings changed. Make a new prediction to run again." This is the fix called for in §5.4.
-- [ ] Commit.
+- [x] When `signature` differs from the one saved at the last run, clear `ran` **and** reset the prediction, and show "Settings changed. Make a new prediction to run again." This is the fix called for in §5.4.
+- [x] Commit.
 
 ### Task 1.6 — App shell: navigation, sidebar, footer
 Files: rewrite `app.py`; create `components/layout.py`, `pages/home.py`, `content/pages.yaml`.
 
-- [ ] `app.py`: `st.set_page_config`, `tutor.load_settings()`, build pages with `st.Page` and `st.navigation` in this order: Home; 1 Bits & Superposition; 2 Coupled Oscillators; 3 Electrons & Qubits; Go deeper: Superposition vs. mixture; 4 Phi-Bit Systems; Test Your Understanding; My Journey. Pages not built yet show "Coming in a later phase."
-- [ ] Sidebar (§4.2, minus study code and consent): progress list (topics visited, questions answered) and the tutor model picker. Keep the existing "Save questions and answers to a local log file" checkbox, local only and off by default.
-- [ ] `layout.py`: `page_header(page_id)` (title + intro from `pages.yaml`), `prev_next(page_id)` buttons, and `footer()`.
-- [ ] Footer text, kept in one constant `ATTRIBUTION` in `layout.py` so you can reword it in one place:
+- [x] `app.py`: `st.set_page_config`, `tutor.load_settings()`, build pages with `st.Page` and `st.navigation` in this order: Home; 1 Bits & Superposition; 2 Coupled Oscillators; 3 Electrons & Qubits; Go deeper: Superposition vs. mixture; 4 Phi-Bit Systems; Test Your Understanding; My Journey. Pages not built yet show "Coming in a later phase."
+- [x] Sidebar (§4.2, minus study code and consent): progress list (topics visited, questions answered) and the tutor model picker. Keep the existing "Save questions and answers to a local log file" checkbox, local only and off by default.
+- [x] `layout.py`: `page_header(page_id)` (title + intro from `pages.yaml`), `prev_next(page_id)` buttons, and `footer()`.
+- [x] Footer text, kept in one constant `ATTRIBUTION` in `layout.py` so you can reword it in one place:
   > Based on the *Superposition State Primer* created at **Spelman College**. This version was developed with the **Institute for Future Intelligence**. Demonstration version: nothing you type is stored by this app.
 
   In hosted mode the last sentence becomes: "Demonstration version: questions and answers are sent to Ollama's cloud service to be answered and are not stored by this app."
-- [ ] `content/pages.yaml`: for each page, `title`, `intro`, `things_to_try`, `starter_questions`. Copy titles and intros from the Spelman site (https://sites.google.com/view/newfos-primer-superposition/home); button and preset labels are already in spec §2.1.
-- [ ] Apply the two text edits while copying: Topic 3 intro "hovering in a mixed state between the two" → "in a combination of the two"; Topic 1 "experiencing a mix" → "a combination". Add a `tests/test_content.py` check that no intro in `pages.yaml` contains "mixed state" or "experiencing a mix".
-- [ ] `pages/home.py`: the one-story overview (§3.1), links to the four topics, and a general chat (`page_id="home"`, replaces the "Launch Gem" button).
-- [ ] Commit.
+- [x] `content/pages.yaml`: for each page, `title`, `intro`, `things_to_try`, `starter_questions`. Copy titles and intros from the Spelman site (https://sites.google.com/view/newfos-primer-superposition/home); button and preset labels are already in spec §2.1.
+- [x] Apply the two text edits while copying: Topic 3 intro "hovering in a mixed state between the two" → "in a combination of the two"; Topic 1 "experiencing a mix" → "a combination". Add a `tests/test_content.py` check that no intro in `pages.yaml` contains "mixed state" or "experiencing a mix".
+- [x] `pages/home.py`: the one-story overview (§3.1), links to the four topics, and a general chat (`page_id="home"`, replaces the "Launch Gem" button).
+- [x] Commit.
 
 ### Task 1.7 — Move the existing page into "Go deeper"
 Files: create `pages/t3b_superposition_vs_mixture.py`, `tests/test_pages.py`.
 
-- [ ] Move `main()`'s page body here. Build-the-state and measurement controls move from the sidebar into the page's right-hand column (the sidebar is now shared).
-- [ ] Replace the hand-rolled predict/run logic with `prediction_gate`, signature `(theta, phi, m_polar, m_azim, n_shots, seed)`.
-- [ ] Add the short intro linking back to the Topic 1 coin and the Topic 3 slider (§5.4).
-- [ ] Use `chat_panel` with a `tutor_context()` function returning the dictionary from Task 1.3.
-- [ ] `AppTest` tests: page loads with Ollama off; Run is locked until a prediction is chosen; after Run, changing θ re-locks and clears the prediction; footer text is present.
-- [ ] Run the app by hand and compare numbers with the old page for θ=90°, φ=0, along x: superposition P(+) = 1.000, mixture 0.500.
-- [ ] `pytest -v` all green. Commit.
+- [x] Move `main()`'s page body here. Build-the-state and measurement controls move from the sidebar into the page's right-hand column (the sidebar is now shared).
+- [x] Replace the hand-rolled predict/run logic with `prediction_gate`, signature `(theta, phi, m_polar, m_azim, n_shots, seed)`.
+- [x] Add the short intro linking back to the Topic 1 coin and the Topic 3 slider (§5.4).
+- [x] Use `chat_panel` with a `tutor_context()` function returning the dictionary from Task 1.3.
+- [x] `AppTest` tests: page loads with Ollama off; Run is locked until a prediction is chosen; after Run, changing θ re-locks and clears the prediction; footer text is present.
+- [x] Run the app by hand and compare numbers with the old page for θ=90°, φ=0, along x: superposition P(+) = 1.000, mixture 0.500.
+- [x] `pytest -v` all green. Commit.
 
 ## Phase 2 — Topic 1: Bits & Superposition (§5.1, §6.1)
 
 ### Task 2.1 — Physics
 Files: create `physics/bits.py`, `tests/test_physics_bits.py`.
 
-- [ ] Tests first: `measure_classical("ON")` returns `"ON"` in 1,000 calls; `slap_coins(10000, seed)` lands within 4 standard errors (±200) of 5,000 heads for at least 999 of seeds 0–999; heads + tails = n; same seed gives the same result; `slap_coins(0, seed)` returns `(0, 0)`.
-- [ ] Implement `measure_classical(state) -> str` and `slap_coins(n, seed, p_heads=0.5) -> (heads, tails)`. Commit.
+- [x] Tests first: `measure_classical("ON")` returns `"ON"` in 1,000 calls; `slap_coins(10000, seed)` lands within 4 standard errors (±200) of 5,000 heads for at least 999 of seeds 0–999; heads + tails = n; same seed gives the same result; `slap_coins(0, seed)` returns `(0, 0)`.
+- [x] Implement `measure_classical(state) -> str` and `slap_coins(n, seed, p_heads=0.5) -> (heads, tails)`. Commit.
 
 ### Task 2.2 — Page
 Files: create `pages/t1_bits.py`, `content/notes/t1_bits.md`; add to `tests/test_pages.py`.
 
-- [ ] Left: light switch with ON/OFF toggle and "Measure Classical Bit". Right: coin with "Measure Coin (Slap it down!)" → HEADS or TAILS, then "Reset (Spin Again)".
-- [ ] "Measure 100 coins" with a running heads/tails tally and bar chart.
-- [ ] Two predictions through the gate: switch measured 10 times → how many ON; 100 coin slaps → about how many heads. Show the actual count and the difference.
-- [ ] "Where the analogy breaks" expander with a link to the Go deeper page.
-- [ ] `tutor_context()`: switch state, coin state, tallies (tallies only after measuring).
-- [ ] Notes file: classical bit vs. coin, 50/50 statistics, the limit of the coin analogy.
-- [ ] `AppTest`: toggle then measure reports the set state; coin measure then reset; 100-coin tally adds to 100; works with Ollama off.
-- [ ] Commit.
+- [x] Left: light switch with ON/OFF toggle and "Measure Classical Bit". Right: coin with "Measure Coin (Slap it down!)" → HEADS or TAILS, then "Reset (Spin Again)".
+- [x] "Measure 100 coins" with a running heads/tails tally and bar chart.
+- [x] Two predictions through the gate: switch measured 10 times → how many ON; 100 coin slaps → about how many heads. Show the actual count and the difference.
+- [x] "Where the analogy breaks" expander with a link to the Go deeper page.
+- [x] `tutor_context()`: switch state, coin state, tallies (tallies only after measuring).
+- [x] Notes file: classical bit vs. coin, 50/50 statistics, the limit of the coin analogy.
+- [x] `AppTest`: toggle then measure reports the set state; coin measure then reset; 100-coin tally adds to 100; works with Ollama off.
+- [x] Commit.
 
 ## Phase 3 — Topic 2: Coupled Oscillators (§5.2, §6.2)
 
 ### Task 3.1 — Physics
 Files: create `physics/oscillators.py`, `tests/test_physics_oscillators.py`.
 
-- [ ] Tests first:
+- [x] Tests first:
   - `normal_modes(1, 2.625, 1)` gives ω = 1.0 and 2.5 to 1e-9, vectors (1,1)/√2 and (1,−1)/√2 (compare up to sign).
   - `mode_amplitudes(40, 40) == (40, 0)`; `(40, −40)` → `(0, 40)`; `(40, 0)` → `(20, 20)`; `(0, 0)` → `(0, 0)`.
   - `positions` matches a direct numerical solution of Newton's equations (velocity-Verlet, dt = 1e-3, 30 time units) to 1e-6.
   - `spectrum` of x₁(t) for (40, −10) has peaks at ω = 1.0 and 2.5 with heights 15 and 25 (to 1%).
   - `random_start(seed)` never returns |x₁| = |x₂|, for seeds 0–999.
-- [ ] Implement `normal_modes(k, k_c, m)`, `mode_amplitudes(x1_0, x2_0)`, `positions(t, x1_0, x2_0, k, k_c, m)`, `spectrum(trace, dt)`, `random_start(seed)`.
-- [ ] For `spectrum`: sample over a whole number of the 4π repeat time so both default peaks land exactly on a frequency bin; when k_c is changed (Go deeper), zero-pad and read the peak nearest each mode frequency.
-- [ ] Commit.
+- [x] Implement `normal_modes(k, k_c, m)`, `mode_amplitudes(x1_0, x2_0)`, `positions(t, x1_0, x2_0, k, k_c, m)`, `spectrum(trace, dt)`, `random_start(seed)`.
+- [x] For `spectrum`: sample over a whole number of the 4π repeat time so both default peaks land exactly on a frequency bin; when k_c is changed (Go deeper), zero-pad and read the peak nearest each mode frequency.
+- [x] Commit.
 
 ### Task 3.2 — State card
 Files: create `components/state_card.py`; test in `tests/test_pages.py`.
 
-- [ ] `state_card(amp0, amp1, phase_deg, labels)`: two amplitude bars and a mini Bloch sphere dot at θ = 2·arctan2(|amp1|, |amp0|), φ = phase. Both amplitudes zero → show "No state yet" instead of a dot.
-- [ ] Commit.
+- [x] `state_card(amp0, amp1, phase_deg, labels)`: two amplitude bars and a mini Bloch sphere dot at θ = 2·arctan2(|amp1|, |amp0|), φ = phase. Both amplitudes zero → show "No state yet" instead of a dot.
+- [x] Commit.
 
 ### Task 3.3 — Page
 Files: create `pages/t2_oscillators.py`, `content/notes/t2_oscillators.md`.
 
-- [ ] Sliders for both weights (Left 80 to Right 80, default Right 40 each). Presets "Pattern 1 Only (Both Right)", "Pattern 2 Only (Opposite)", "Random Superposition (Mix!)".
-- [ ] Animation: Plotly frames, about 12 s loop, about 200 points, zigzag springs, circle weights, play and pause. Add `spring_trace` and `mass_trace` helpers to `components/plots.py`.
-- [ ] Plots: weight 1 position over time; frequency spectrum from `spectrum()` with peaks labeled Pattern 1 and Pattern 2.
-- [ ] Prediction: "With weight 1 at Right 40 and weight 2 at center, which patterns will light up?"
-- [ ] "Go deeper" expander: coupling-strength slider k_c; Pattern 2's peak moves, Pattern 1's stays.
-- [ ] State card with A₁, A₂.
-- [ ] `tutor_context()` and notes file (normal modes, why two patterns, what the spectrum shows).
-- [ ] `AppTest`: each preset sets the sliders; Pattern 1 preset shows A₂ = 0; works with Ollama off.
-- [ ] Commit.
+- [x] Sliders for both weights (Left 80 to Right 80, default Right 40 each). Presets "Pattern 1 Only (Both Right)", "Pattern 2 Only (Opposite)", "Random Superposition (Mix!)".
+- [x] Animation: Plotly frames, about 12 s loop, about 200 points, zigzag springs, circle weights, play and pause. Add `spring_trace` and `mass_trace` helpers to `components/plots.py`.
+- [x] Plots: weight 1 position over time; frequency spectrum from `spectrum()` with peaks labeled Pattern 1 and Pattern 2.
+- [x] Prediction: "With weight 1 at Right 40 and weight 2 at center, which patterns will light up?"
+- [x] "Go deeper" expander: coupling-strength slider k_c; Pattern 2's peak moves, Pattern 1's stays.
+- [x] State card with A₁, A₂.
+- [x] `tutor_context()` and notes file (normal modes, why two patterns, what the spectrum shows).
+- [x] `AppTest`: each preset sets the sliders; Pattern 1 preset shows A₂ = 0; works with Ollama off.
+- [x] Commit.
 
 ## Phase 4 — Topic 3: Electrons & Qubits (§5.3, §6.3)
 
 ### Task 4.1 — Physics
 Files: create `physics/qubit.py`, `tests/test_physics_qubit.py`.
 
-- [ ] Tests first: `theta_from_probability` gives 90° at 0.5, 0° at 1.0, 180° at 0.0; `measure(p, 10000, seed)` UP count within 4 standard errors of 10000·p for p = 0.1, 0.5, 0.7; `measure(1.0, 100, s) == (100, 0)` and `measure(0.0, 100, s) == (0, 100)`; ups + downs = n.
-- [ ] Implement `theta_from_probability(p_up) -> theta_deg` and `measure(p_up, n, seed) -> (ups, downs)`. Commit.
+- [x] Tests first: `theta_from_probability` gives 90° at 0.5, 0° at 1.0, 180° at 0.0; `measure(p, 10000, seed)` UP count within 4 standard errors of 10000·p for p = 0.1, 0.5, 0.7; `measure(1.0, 100, s) == (100, 0)` and `measure(0.0, 100, s) == (0, 100)`; ups + downs = n.
+- [x] Implement `theta_from_probability(p_up) -> theta_deg` and `measure(p_up, n, seed) -> (ups, downs)`. Commit.
 
 ### Task 4.2 — Page
 Files: create `pages/t3_qubits.py`, `content/notes/t3_qubits.md`.
 
-- [ ] Bloch-sphere arrow (reuse `bloch_sphere_base`); slider 100% DOWN to 100% UP, default 50/50.
-- [ ] "Measure 1x" (arrow snaps to UP or DOWN), "Measure 100x" (adds 100 results, resets the arrow), results bars with counts, "Clear Data".
-- [ ] Prediction before "Measure 100x": about how many UP out of 100; show actual and difference.
-- [ ] "Sample size" note with a small chart of measured fraction vs. number of measurements.
-- [ ] State card; link button to "Go deeper: Superposition vs. mixture".
-- [ ] `tutor_context()` and notes file (amplitudes vs. probabilities, measurement snaps the state, repeat measurement gives the same result).
-- [ ] `AppTest`: counts add up after 1x and 100x; Clear Data zeroes them; slider at 100% UP gives only UP; works with Ollama off.
-- [ ] Commit.
+- [x] Bloch-sphere arrow (reuse `bloch_sphere_base`); slider 100% DOWN to 100% UP, default 50/50.
+- [x] "Measure 1x" (arrow snaps to UP or DOWN), "Measure 100x" (adds 100 results, resets the arrow), results bars with counts, "Clear Data".
+- [x] Prediction before "Measure 100x": about how many UP out of 100; show actual and difference.
+- [x] "Sample size" note with a small chart of measured fraction vs. number of measurements.
+- [x] State card; link button to "Go deeper: Superposition vs. mixture".
+- [x] `tutor_context()` and notes file (amplitudes vs. probabilities, measurement snaps the state, repeat measurement gives the same result).
+- [x] `AppTest`: counts add up after 1x and 100x; Clear Data zeroes them; slider at 100% UP gives only UP; works with Ollama off.
+- [x] Commit.
 
 ## Phase 5 — Topic 4: Phi-Bit Systems (§5.5, §6.4)
 
 ### Task 5.1 — Physics
 Files: create `physics/phibit.py`, `tests/test_physics_phibit.py`.
 
-- [ ] Tests first:
+- [x] Tests first:
   - `displacement` with δ = 0 equals a_L·cos(kx + ωt) + a_R·cos(kx − ωt) on a grid of x and t.
   - With a_L = a_R, displacement equals 2a·cos(kx + δ/2)·cos(ωt − δ/2) (to 1e-12), so nodes do not move in time.
   - `node_positions` shift by δ/(2k) when δ changes; every returned node has zero displacement at three different times.
@@ -284,21 +284,21 @@ Files: create `physics/phibit.py`, `tests/test_physics_phibit.py`.
   - `classify` returns the five original labels: (100, 0) → Pure State 0; (0, 100) → Pure State 1; (100, 100) → 50/50 Superposition (Standing Wave); (100, 40) → Uneven Mix; (0, 0) → no waves.
   - Both amplitudes zero: `share_of_state_1` and `bloch_from_amplitudes` return `None`, no divide-by-zero warning.
   - Chain dispersion: the 12 numerical normal-mode frequencies of a chain (masses m, neighbor springs K, side springs k₀) all fall inside the band k₀/m ≤ ω² ≤ k₀/m + 4K/m.
-- [ ] Implement `displacement`, `classify`, `bloch_from_amplitudes` (use `arctan2`), `share_of_state_1`, `node_positions`, `chain_dispersion(q, m, K, k0, a)`, `chain_modes(n, m, K, k0)`.
-- [ ] Commit.
+- [x] Implement `displacement`, `classify`, `bloch_from_amplitudes` (use `arctan2`), `share_of_state_1`, `node_positions`, `chain_dispersion(q, m, K, k0, a)`, `chain_modes(n, m, K, k0)`.
+- [x] Commit.
 
 ### Task 5.2 — Page
 Files: create `pages/t4_phibits.py`, `content/notes/t4_phibits.md`.
 
-- [ ] Chain of 12 weights with side springs and driver; displacement graph with colored dots under each weight; animation with play and pause.
-- [ ] Presets "State 0 (100% Left)", "State 1 (100% Right)", "Superposition (Both!)"; "Driving Force Frequency (Motor Speed)" slider (default 1.5); Wave Mixer with LEFT and RIGHT sliders; status box from `classify`.
-- [ ] Wave Mixer sliders labeled "LEFT Wave Amplitude" and "RIGHT Wave Amplitude" (replacing the site's "Wave Power"), with readouts for power (amplitude squared) and "share of State 1" (§3.4).
-- [ ] Relative phase slider δ (0–359°, default 0) with the prediction: "If you change the phase while the mix is 50/50, what happens to the still points?"
-- [ ] State card with the phi-bit state; "Same and different" panel (qubit vs. phi-bit).
-- [ ] "Go deeper" toggle: real chain frequency–wavelength relation; below the lowest allowed frequency show "No traveling wave at this frequency."
-- [ ] `tutor_context()` and notes file (two traveling waves as basis states, standing wave, phase moves the nodes, classical analog of a qubit and where it differs).
-- [ ] `AppTest`: each preset gives the matching status label; both sliders at 0 shows the "no waves" status and no error; works with Ollama off.
-- [ ] Commit.
+- [x] Chain of 12 weights with side springs and driver; displacement graph with colored dots under each weight; animation with play and pause.
+- [x] Presets "State 0 (100% Left)", "State 1 (100% Right)", "Superposition (Both!)"; "Driving Force Frequency (Motor Speed)" slider (default 1.5); Wave Mixer with LEFT and RIGHT sliders; status box from `classify`.
+- [x] Wave Mixer sliders labeled "LEFT Wave Amplitude" and "RIGHT Wave Amplitude" (replacing the site's "Wave Power"), with readouts for power (amplitude squared) and "share of State 1" (§3.4).
+- [x] Relative phase slider δ (0–359°, default 0) with the prediction: "If you change the phase while the mix is 50/50, what happens to the still points?"
+- [x] State card with the phi-bit state; "Same and different" panel (qubit vs. phi-bit).
+- [x] "Go deeper" toggle: real chain frequency–wavelength relation; below the lowest allowed frequency show "No traveling wave at this frequency."
+- [x] `tutor_context()` and notes file (two traveling waves as basis states, standing wave, phase moves the nodes, classical analog of a qubit and where it differs).
+- [x] `AppTest`: each preset gives the matching status label; both sliders at 0 shows the "no waves" status and no error; works with Ollama off.
+- [x] Commit.
 
 ## Phase 6 — Test Your Understanding (§8, changed by D4)
 
@@ -333,18 +333,18 @@ questions:
     misconceptions: []
 ```
 
-- [ ] Tests first: the shipped file loads and has exactly the three question texts above; `has_rubric(q)` is False for all three; the draft file loads and `has_rubric` is True for all three; a file with a duplicate id, a missing `text`, a key idea without `id`, or a `revisit.page` that is not a real page raises `ContentError` whose message names the file and the problem.
-- [ ] `feedback.load_questions(path) -> list[dict]` and `feedback.has_rubric(question) -> bool`.
-- [ ] Copy the §8.2 draft key ideas and misconceptions into `questions.rubric-draft.yaml` in the same format, with a header comment: "Draft, not approved by the Spelman team. Not loaded by the app."
-- [ ] `app.py` calls `load_questions` at startup and shows any `ContentError` with `st.error` instead of a traceback.
-- [ ] Commit.
+- [x] Tests first: the shipped file loads and has exactly the three question texts above; `has_rubric(q)` is False for all three; the draft file loads and `has_rubric` is True for all three; a file with a duplicate id, a missing `text`, a key idea without `id`, or a `revisit.page` that is not a real page raises `ContentError` whose message names the file and the problem.
+- [x] `feedback.load_questions(path) -> list[dict]` and `feedback.has_rubric(question) -> bool`.
+- [x] Copy the §8.2 draft key ideas and misconceptions into `questions.rubric-draft.yaml` in the same format, with a header comment: "Draft, not approved by the Spelman team. Not loaded by the app."
+- [x] `app.py` calls `load_questions` at startup and shows any `ContentError` with `st.error` instead of a traceback.
+- [x] Commit.
 
 ### Task 6.2 — Feedback engine (both modes)
 Files: finish `feedback.py`; create `tests/test_feedback.py`; add `tutor.ask_json(model, system, user, schema)` and `tutor.ask_text(...)` (non-streaming calls).
 
 Interface: `feedback.give_feedback(model, question, answer) -> {"text": str, "mode": "guided" | "rubric" | "fallback", "rubric": dict | None, "flagged": bool}`
 
-- [ ] Tests first, using the fake Ollama server with scripted replies:
+- [x] Tests first, using the fake Ollama server with scripted replies:
   - No rubric → one model call, `mode == "guided"`.
   - With the test rubric → two calls, `mode == "rubric"`, checked JSON returned.
   - Evidence that is not in the student's answer (ignoring case and spacing) → that idea becomes "absent" and the check runs once more.
@@ -352,23 +352,23 @@ Interface: `feedback.give_feedback(model, question, answer) -> {"text": str, "mo
   - Reply that is not valid JSON → one retry → then `mode == "fallback"`, `flagged == True`.
   - Feedback text that copies rubric wording (word overlap with any key idea above 0.6) → one retry → then fallback.
   - `OllamaUnavailable` is passed up to the page untouched.
-- [ ] Guided mode prompt: 3–5 sentences; one specific strength quoting the student's words; one gap phrased as a guiding question; never write or rewrite the answer; point to one of the question's revisit links.
-- [ ] Rubric mode: step 1 structured output with Ollama's `format` JSON schema (§8.3), code checks, step 2 feedback text from the checked JSON. No score or level in the text.
-- [ ] Fallback text: "Thanks for your answer. Try revisiting the simulation below, then revise your answer." plus the revisit link.
-- [ ] Commit.
+- [x] Guided mode prompt: 3–5 sentences; one specific strength quoting the student's words; one gap phrased as a guiding question; never write or rewrite the answer; point to one of the question's revisit links.
+- [x] Rubric mode: step 1 structured output with Ollama's `format` JSON schema (§8.3), code checks, step 2 feedback text from the checked JSON. No score or level in the text.
+- [x] Fallback text: "Thanks for your answer. Try revisiting the simulation below, then revise your answer." plus the revisit link.
+- [x] Commit.
 
 ### Task 6.3 — Page
 Files: create `pages/test_understanding.py`; add to `tests/test_pages.py`.
 
-- [ ] For each question: text box (draft kept while moving between questions), optional confidence 1–5, Submit.
-- [ ] Each submission is appended as a numbered attempt in `st.session_state["tyu_attempts"]`; earlier attempts are never overwritten and are shown in an expander.
-- [ ] After Submit: spinner, then feedback, then revisit buttons. A revisit button sets the target page's preset in session state and calls `st.switch_page`.
-- [ ] "Discuss this question" opens `chat_panel` with `seed_message` = question + latest answer, and a context whose `hold_back` is "a model answer to this question".
-- [ ] Submit is disabled for empty or whitespace-only text; answers are capped at 4,000 characters with a counter.
-- [ ] If Ollama is off or fails mid-feedback: the attempt is still saved, and the student sees "Your answer is saved. Feedback is unavailable right now."
-- [ ] Hosted mode: the "don't type personal information" caption above the answer boxes.
-- [ ] `AppTest`: submit → attempt 1 saved with feedback; submit again → attempt 2, attempt 1 unchanged; empty answer cannot be submitted; Ollama off → attempt saved, message shown.
-- [ ] Commit.
+- [x] For each question: text box (draft kept while moving between questions), optional confidence 1–5, Submit.
+- [x] Each submission is appended as a numbered attempt in `st.session_state["tyu_attempts"]`; earlier attempts are never overwritten and are shown in an expander.
+- [x] After Submit: spinner, then feedback, then revisit buttons. A revisit button sets the target page's preset in session state and calls `st.switch_page`.
+- [x] "Discuss this question" opens `chat_panel` with `seed_message` = question + latest answer, and a context whose `hold_back` is "a model answer to this question".
+- [x] Submit is disabled for empty or whitespace-only text; answers are capped at 4,000 characters with a counter.
+- [x] If Ollama is off or fails mid-feedback: the attempt is still saved, and the student sees "Your answer is saved. Feedback is unavailable right now."
+- [x] Hosted mode: the "don't type personal information" caption above the answer boxes.
+- [x] `AppTest`: submit → attempt 1 saved with feedback; submit again → attempt 2, attempt 1 unchanged; empty answer cannot be submitted; Ollama off → attempt saved, message shown.
+- [x] Commit.
 
 ## Phase 7 — My Journey, session only (§5.7, changed by D1)
 
@@ -376,26 +376,26 @@ Files: create `components/journey.py`, `pages/my_journey.py`; add `journey.recor
 
 Interface: `journey.record(event_type, page, **details)`, `journey.events() -> list[dict]`, `journey.to_markdown() -> str`, `journey.to_html() -> str`. Everything is kept in `st.session_state["journey"]`. This is the one place a saved store could be added later, after IRB approval.
 
-- [ ] `record` calls on each page for: page visit, preset, measure / run, prediction (with whether it matched), Test Your Understanding submit, revisit link, chat question. Slider values are recorded with the measure / run event, not on every drag.
-- [ ] `pages/my_journey.py`: a timeline grouped by page; predictions with match / no match; each answer with its attempts and feedback; chat questions. Banner at the top: "This record exists only in this browser tab. Download it to keep it."
-- [ ] "Download as HTML" and "Download as Markdown" (all text escaped in the HTML, as in `tutor.conversation_html`).
-- [ ] Sidebar progress list reads from `journey.events()`.
-- [ ] Tests: events appear in order; the Markdown contains a submitted answer and its feedback; the HTML escapes `<script>` typed into an answer; nothing is written to disk (`logs/` not created) unless the local log checkbox is ticked.
-- [ ] Commit.
+- [x] `record` calls on each page for: page visit, preset, measure / run, prediction (with whether it matched), Test Your Understanding submit, revisit link, chat question. Slider values are recorded with the measure / run event, not on every drag.
+- [x] `pages/my_journey.py`: a timeline grouped by page; predictions with match / no match; each answer with its attempts and feedback; chat questions. Banner at the top: "This record exists only in this browser tab. Download it to keep it."
+- [x] "Download as HTML" and "Download as Markdown" (all text escaped in the HTML, as in `tutor.conversation_html`).
+- [x] Sidebar progress list reads from `journey.events()`.
+- [x] Tests: events appear in order; the Markdown contains a submitted answer and its feedback; the HTML escapes `<script>` typed into an answer; nothing is written to disk (`logs/` not created) unless the local log checkbox is ticked.
+- [x] Commit.
 
 ## Phase 8 — Quick checks (§8.4)
 
 The items are the spec's drafts. They live in `content/quick_checks.yaml`, so they can be edited there later; an empty file hides the feature.
 
-- [ ] `content/quick_checks.yaml`: the eight items from §8.4, each with feedback for every wrong option and a revisit link.
-- [ ] `components/quick_check.py`: shows a page's items at the end of the topic page; records to the journey.
-- [ ] Loader test (same error rules as `questions.yaml`) and one `AppTest` per topic page.
-- [ ] Commit.
+- [x] `content/quick_checks.yaml`: the eight items from §8.4, each with feedback for every wrong option and a revisit link.
+- [x] `components/quick_check.py`: shows a page's items at the end of the topic page; records to the journey.
+- [x] Loader test (same error rules as `questions.yaml`) and one `AppTest` per topic page.
+- [x] Commit.
 
 ## Phase 9 — Pilot on the laptop
 
-- [ ] `pytest -v`: everything green.
-- [ ] Rewrite `README.md`: what the primer is, how to run it, the page list, how to add a rubric (edit `content/questions.yaml`; the format; where the draft is), how to add tutor notes or Gem material later (drop Markdown into `content/notes/`), what is and is not stored, hosting steps, attribution.
+- [x] `pytest -v`: everything green.
+- [x] Rewrite `README.md`: what the primer is, how to run it, the page list, how to add a rubric (edit `content/questions.yaml`; the format; where the draft is), how to add tutor notes or Gem material later (drop Markdown into `content/notes/`), what is and is not stored, hosting steps, attribution.
 - [ ] Ollama running, `streamlit run app.py`. Walk through as a student, start to finish:
   - [ ] Topic 1: both predictions, measure, 100 coins, analogy note.
   - [ ] Topic 2: three presets, prediction, Go deeper slider; the spectrum peaks match the state card bars.
@@ -423,6 +423,40 @@ The items are the spec's drafts. They live in `content/quick_checks.yaml`, so th
 - [ ] Let the app go to sleep (or reboot it from the dashboard) and confirm it wakes cleanly with an empty journey.
 
 ---
+
+## Build notes (what was built, and where it differs from the plan above)
+
+Phases 0 to 8 are built on the branch `primer-v2`, with 207 automated tests
+passing. Phase 9's hands-on walk-through and Phase 10 are yours.
+
+Checked against your real local Ollama (model `gpt-oss:20b`): feedback
+without a rubric took about 7 s, feedback with the draft rubric about 9 s,
+and a tutor answer about 5 s.
+
+Not checked: how the pages and animations look in a browser. The tests
+confirm every page runs and computes the right numbers, but nobody has
+looked at the screen yet. That is the first thing to do in Phase 9.
+
+Differences from the plan:
+
+| Plan said | What was built | Why |
+|---|---|---|
+| Notes files `t1_bits.md`, `t2_oscillators.md`, … | `t1.md`, `t2.md`, `t3.md`, `t3b.md`, `t4.md`, `shared.md` | The file name is the page id, so a page finds its notes with no lookup table |
+| Journey recorder in Phase 7 | Core `record()` built in Phase 1; page and downloads in Phase 7 | The chat panel records questions from the start |
+| Submit disabled for an empty answer | Submit is always clickable; an empty answer shows "Write an answer in the box first" and saves nothing | A disabled button can swallow the click a student makes straight after typing |
+| Newton check with velocity-Verlet | Runge-Kutta 4 | Verlet at that step size is only good to about 1e-3; RK4 meets the 1e-6 target |
+| Topic 3 keeps results when the slider moves (as on the Spelman site) | Moving the slider clears the results | Old results belong to the old mix and would spoil the sample-size chart |
+| Topic 3 "Measure 1x" only | Added "Measure the same qubit again" | Shows that a measured qubit keeps giving the same result (a quick-check item asks this) |
+| `tyu` discussion uses `hold_back` | Uses a page rule that overrides the tutor's "explain after two attempts" rule | Otherwise the tutor's general rules allowed it to give the answer |
+| Topic 3 intro: one phrase changed | Also changed "this weird mixed state" to "this weird combination" in the next sentence | Same problem word, same paragraph. Revert in `content/pages.yaml` if you prefer |
+| Footer checked on every page by test | Checked on the home page by test; drawn by `app.py` after every page | Streamlit's test runner opens other pages outside `app.py` |
+| `components/plots.py` only | Plus `components/plots_waves.py` for the spring and chain animations | Keeps each file a readable size |
+
+Things to know:
+
+- **Holding back results is prompt-based.** The tutor is told not to reveal a result before the student predicts. With `gpt-oss:20b` it mostly complied after the rule was strengthened, but it still hinted. Try other models in the pilot.
+- **Two older copies of the app are still running** on this laptop from October 5 (process ids 12825 and 13902). They now serve the new code. Close them if you don't need them.
+- **Rubric feedback can borrow vocabulary** from a key idea the student hasn't reached (for example "think about what weight or amplitude would do"). The code check only blocks feedback that repeats most of a key idea's words.
 
 ## Deferred until there is IRB approval or a campus server
 
