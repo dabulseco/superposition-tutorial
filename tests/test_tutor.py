@@ -104,3 +104,47 @@ def test_split_suggestions_passes_text_through_without_a_marker():
     suggestions = []
     assert "".join(tutor.split_suggestions(["Just ", "text."], suggestions)) == "Just text."
     assert suggestions == []
+
+
+# ---- talking to Ollama (uses the stand-in server) ---------------------------
+
+import pytest
+
+HISTORY = [{"role": "user", "content": "Why?"}]
+
+
+def test_list_models_keeps_ollama_order(ollama):
+    assert tutor.list_models() == ["model-newest", "model-older"]
+
+
+def test_list_models_reports_ollama_off():
+    with pytest.raises(tutor.OllamaUnavailable):
+        tutor.list_models()
+
+
+def test_stream_answer_yields_the_whole_answer(ollama):
+    assert "".join(tutor.stream_answer("m", "sys", HISTORY)) == "Hello there."
+
+
+def test_stream_answer_sends_system_prompt_and_question(ollama):
+    list(tutor.stream_answer("m", "SYSTEM-TEXT", HISTORY))
+    sent = ollama.requests[-1]["messages"]
+    assert sent[0] == {"role": "system", "content": "SYSTEM-TEXT"}
+    assert sent[-1] == {"role": "user", "content": "Why?"}
+
+
+def test_stream_answer_hides_thinking(ollama):
+    ollama.stream_pieces = ["<think>private</think>", "Public."]
+    assert "".join(tutor.stream_answer("m", "sys", HISTORY)) == "Public."
+
+
+def test_error_reply_mentions_embedding_models(ollama):
+    ollama.mode = "error500"
+    with pytest.raises(tutor.OllamaUnavailable, match="embedding model"):
+        list(tutor.stream_answer("m", "sys", HISTORY))
+
+
+def test_dropped_connection_is_reported_not_silently_truncated(ollama):
+    ollama.mode = "drop"
+    with pytest.raises(tutor.OllamaUnavailable, match="before the answer was finished"):
+        list(tutor.stream_answer("m", "sys", HISTORY))

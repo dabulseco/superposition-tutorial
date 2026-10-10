@@ -114,6 +114,10 @@ class OllamaUnavailable(Exception):
     """Raised when Ollama can't be reached or returns an error."""
 
 
+DROPPED_MESSAGE = ("The connection to Ollama dropped before the answer was "
+                   "finished. Please ask again.")
+
+
 def _headers() -> dict:
     """The API key, sent with every request in HOSTED mode."""
     return {"Authorization": f"Bearer {OLLAMA_API_KEY}"} if HOSTED else {}
@@ -332,15 +336,24 @@ def stream_answer(model: str, system_prompt: str, history: list[dict],
 
     # Ollama sends one JSON object per line while it writes.
     def pieces():
-        for line in reply.iter_lines():
-            if not line:
-                continue
-            chunk = json.loads(line)
-            if "error" in chunk:
-                raise OllamaUnavailable(chunk["error"])
-            yield chunk.get("message", {}).get("content", "")
-            if chunk.get("done"):
-                break
+        finished = False
+        try:
+            for line in reply.iter_lines():
+                if not line:
+                    continue
+                chunk = json.loads(line)
+                if "error" in chunk:
+                    raise OllamaUnavailable(chunk["error"])
+                yield chunk.get("message", {}).get("content", "")
+                if chunk.get("done"):
+                    finished = True
+                    break
+        except (requests.RequestException, ValueError) as err:
+            raise OllamaUnavailable(DROPPED_MESSAGE) from err
+        # Ollama always ends with a "done" line. Without it the connection
+        # was cut, and showing half an answer as if complete would mislead.
+        if not finished:
+            raise OllamaUnavailable(DROPPED_MESSAGE)
 
     # "Reasoning" models (e.g. deepseek-r1, qwen3) may write private notes
     # inside <think>...</think>. Students should see only the answer.
