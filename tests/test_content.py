@@ -247,3 +247,11 @@ def test_more_quick_check_mistakes_are_named(tmp_path, change, problem):
     with pytest.raises(feedback.ContentError) as error:
         feedback.load_quick_checks(path, VALID_PAGES)
     assert problem in str(error.value)
+
+
+def test_page_files_are_not_in_a_folder_streamlit_would_serve_on_its_own():
+    # Streamlit treats a folder named "pages" as a ready-made menu and will
+    # open those files directly (no sidebar, tutor, or footer) when someone
+    # loads or reloads a page's address. Ours must only run through app.py.
+    assert not (ROOT / "pages").exists()
+    assert all(not file.startswith("pages/") for _, file, _ in layout.PAGES)

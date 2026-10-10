@@ -1,5 +1,5 @@
 """
-pages/t4_phibits.py — Topic 4: Phi-Bit Systems ("Sound-like Waves")
+views/t4_phibits.py — Topic 4: Phi-Bit Systems ("Sound-like Waves")
 ===================================================================
 
 WHAT THIS PAGE TEACHES
@@ -152,10 +152,10 @@ with picture:
         st.warning(
             f"No traveling wave at this frequency. This chain only carries "
             f"waves with frequency between {low:.1f} and {high:.1f}.")
+    st.markdown("**Chain of weights (top) and displacement graph (bottom)**")
     st.plotly_chart(
         plots_waves.chain_animation(
-            frames_u, fine_x, frames_fine, nodes=nodes, frame_ms=frame_ms,
-            title="Chain of weights (top) and displacement graph (bottom)"),
+            frames_u, fine_x, frames_fine, nodes=nodes, frame_ms=frame_ms),
         width="stretch")
     st.caption(f"Animation (press Play): {motion_summary()}")
 

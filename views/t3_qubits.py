@@ -1,5 +1,5 @@
 """
-pages/t3_qubits.py — Topic 3: Electrons & Qubits
+views/t3_qubits.py — Topic 3: Electrons & Qubits
 ================================================
 
 WHAT THIS PAGE TEACHES

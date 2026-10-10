@@ -19,16 +19,19 @@ ROOT = Path(__file__).parent.parent
 PAGES_FILE = ROOT / "content" / "pages.yaml"
 
 # Every page, in menu order: (page id, file, name in the menu).
+# The folder is called "views", not "pages", on purpose: Streamlit serves
+# a folder named "pages" by itself, bypassing app.py, so a reloaded page
+# would lose its sidebar, tutor, and footer.
 PAGES = [
-    ("home", "pages/home.py", "Home"),
-    ("t1", "pages/t1_bits.py", "1 · Bits & Superposition"),
-    ("t2", "pages/t2_oscillators.py", "2 · Coupled Oscillators"),
-    ("t3", "pages/t3_qubits.py", "3 · Electrons & Qubits"),
-    ("t3b", "pages/t3b_superposition_vs_mixture.py",
+    ("home", "views/home.py", "Home"),
+    ("t1", "views/t1_bits.py", "1 · Bits & Superposition"),
+    ("t2", "views/t2_oscillators.py", "2 · Coupled Oscillators"),
+    ("t3", "views/t3_qubits.py", "3 · Electrons & Qubits"),
+    ("t3b", "views/t3b_superposition_vs_mixture.py",
      "Go deeper: Superposition vs. mixture"),
-    ("t4", "pages/t4_phibits.py", "4 · Phi-Bit Systems"),
-    ("tyu", "pages/test_understanding.py", "Test Your Understanding"),
-    ("journey", "pages/my_journey.py", "My Journey"),
+    ("t4", "views/t4_phibits.py", "4 · Phi-Bit Systems"),
+    ("tyu", "views/test_understanding.py", "Test Your Understanding"),
+    ("journey", "views/my_journey.py", "My Journey"),
 ]
 PAGE_FILES = {page_id: file for page_id, file, _ in PAGES}
 PAGE_NAMES = {page_id: name for page_id, _, name in PAGES}

@@ -1,5 +1,5 @@
 """
-pages/test_understanding.py — Test Your Understanding
+views/test_understanding.py — Test Your Understanding
 =====================================================
 
 Three open questions answered in the student's own words. After each

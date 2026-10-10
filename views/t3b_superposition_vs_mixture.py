@@ -1,5 +1,5 @@
 """
-pages/t3b_superposition_vs_mixture.py — Go deeper: superposition vs. mixture
+views/t3b_superposition_vs_mixture.py — Go deeper: superposition vs. mixture
 ============================================================================
 
 WHAT THIS PAGE TEACHES
@@ -112,9 +112,11 @@ with experiment:
                         width="stretch")
         c1, c2 = st.columns(2)
         c1.metric("Superposition: P(+) theory", f"{p_pure:.3f}",
-                  f"measured {plus_pure / n_shots:.3f}", delta_color="off")
+                  f"measured {plus_pure / n_shots:.3f}", delta_color="off",
+                  delta_arrow="off")
         c2.metric("Mixture: P(+) theory", f"{p_mix:.3f}",
-                  f"measured {plus_mix / n_shots:.3f}", delta_color="off")
+                  f"measured {plus_mix / n_shots:.3f}", delta_color="off",
+                  delta_arrow="off")
 
         same = abs(p_pure - p_mix) < 0.01
         truth = "the same results" if same else "different results"

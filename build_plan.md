@@ -14,7 +14,7 @@ entry point. Move physics into plain Python modules with tests, build each
 topic as its own page on shared components (prediction gate, chat panel,
 state card), and keep the student's journey in the browser session only.
 
-**Stack:** Python 3.12, Streamlit ≥ 1.48 (`st.navigation`, `AppTest`), Plotly,
+**Stack:** Python 3.12, Streamlit ≥ 1.65 (`st.navigation`, `AppTest`), Plotly,
 NumPy, requests, PyYAML, pytest. Conda env (never venv). Ollama locally;
 Ollama cloud key when hosted.
 
@@ -472,6 +472,8 @@ Left as they are (small; your call):
 - Test Your Understanding: if feedback fails for a reason other than Ollama being unreachable, the answer is saved but does not appear in My Journey.
 - In hosted mode, "Discuss this question" pressed before the class password is entered does not start the chat by itself; the student types the first message.
 - Each press of a quick check's Check button adds a line to My Journey.
+
+A later check in a real browser found one more: page files lived in a folder named `pages/`, which Streamlit also serves by itself. Reloading a topic page (or opening its address directly) showed it without the sidebar, tutor, or footer. The folder is now `views/`; wherever this plan says `pages/`, read `views/`.
 
 Things to know:
 

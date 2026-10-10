@@ -28,7 +28,7 @@ HOW TO RUN
 CODE LAYOUT
 -----------
     app.py         this file: the menu, the sidebar, and the footer
-    pages/         one file per page
+    views/         one file per page
     physics/       the physics, with no Streamlit and no language model in
                    it, so every number a student sees comes from tested code
     components/    pieces the pages share (chat, prediction gate, plots)

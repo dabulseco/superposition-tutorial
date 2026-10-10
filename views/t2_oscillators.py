@@ -1,5 +1,5 @@
 """
-pages/t2_oscillators.py — Topic 2: Coupled Oscillators ("Jiggling Springs")
+views/t2_oscillators.py — Topic 2: Coupled Oscillators ("Jiggling Springs")
 ===========================================================================
 
 WHAT THIS PAGE TEACHES
@@ -129,10 +129,13 @@ with picture:
                f"{side_label(x1_0)} and weight 2 from {side_label(x2_0)}; "
                f"{motion_summary()}")
     m1, m2 = st.columns(2)
+    # delta_arrow="off": the small text is a label, not a rise or fall.
     m1.metric("Pattern 1 amplitude", f"{abs(a1):g}",
-              f"frequency {frequencies[0]:.2f}", delta_color="off")
+              f"frequency {frequencies[0]:.2f}", delta_color="off",
+              delta_arrow="off")
     m2.metric("Pattern 2 amplitude", f"{abs(a2):g}",
-              f"frequency {frequencies[1]:.2f}", delta_color="off")
+              f"frequency {frequencies[1]:.2f}", delta_color="off",
+              delta_arrow="off")
 
     st.markdown("**Predict**")
     gate = prediction_gate("t2_predict", ())

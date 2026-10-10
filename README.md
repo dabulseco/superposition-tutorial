@@ -185,7 +185,7 @@ add `OLLAMA_MODE = "hosted"`, and run the app. Never commit that file or put the
 
 ```
 app.py          the menu, the sidebar, and the footer
-pages/          one file per page
+views/          one file per page
 physics/        the physics: no Streamlit, no language model
 components/     pieces the pages share (chat, prediction gate, plots, journey)
 content/        the words: page text, questions, quick checks, tutor notes

@@ -1,5 +1,5 @@
 """
-pages/home.py — the front page
+views/home.py — the front page
 ==============================
 
 Explains the one story that runs through the four topics, links to each of

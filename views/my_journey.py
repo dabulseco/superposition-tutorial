@@ -1,5 +1,5 @@
 """
-pages/my_journey.py — My Journey: what the student did during this visit
+views/my_journey.py — My Journey: what the student did during this visit
 ========================================================================
 
 A timeline of the student's own activity: topics opened, predictions and

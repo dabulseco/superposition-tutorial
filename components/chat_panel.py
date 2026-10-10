@@ -188,7 +188,12 @@ def chat_panel(context: dict, starter_questions=(), seed_message: str | None = N
         return
 
     # A question is typed, picked by clicking a suggestion, or seeded.
-    typed = st.chat_input("Type your question here", key=f"chat_input_{key}")
+    # The box is put inside a container on purpose. Left loose on the page,
+    # Streamlit pins a chat box to the bottom of the window and then opens
+    # every page scrolled to the bottom, past the simulation.
+    with st.container():
+        typed = st.chat_input("Type your question here",
+                              key=f"chat_input_{key}")
     clicked = st.session_state.pop(f"clicked_question_{key}", None)
     question = typed or clicked or seed_message
     if question:

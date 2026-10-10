@@ -1,5 +1,5 @@
 """
-pages/t1_bits.py — Topic 1: Bits & Superposition
+views/t1_bits.py — Topic 1: Bits & Superposition
 ================================================
 
 WHAT THIS PAGE TEACHES
@@ -22,6 +22,7 @@ import streamlit as st
 
 from components import journey, layout, plots
 from components.chat_panel import chat_panel
+from components.coin import coin as draw_coin
 from components.prediction_gate import prediction_gate, reset_gate
 from components.quick_check import quick_check
 from physics import bits
@@ -97,11 +98,16 @@ with coin_side:
             state["t1_coin"] = None
 
     coin = state["t1_coin"]
+    layout.keep("t1_pause", False)
+    paused = st.toggle("Pause the coin", key="t1_pause",
+                       help="Stops the spinning animation.")
+    draw_coin(coin, paused)
     if coin is None:
-        st.markdown("## 🪙 ?")
         st.markdown("The coin is spinning in a blur of both Heads and Tails!")
+        if paused:
+            st.caption("Animation paused. The coin is still unmeasured: it "
+                       "shows \"?\" because neither face has been picked.")
     else:
-        st.markdown(f"## 🪙 {coin[0]}")
         st.markdown(f"The superposition collapsed! "
                     f"**You looked! It snapped to: {coin}**")
     st.button("Measure Coin (Slap it down!)" if coin is None
