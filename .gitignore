@@ -3,3 +3,6 @@ logs/
 __pycache__/
 .DS_Store
 zz-files/
+
+# Shared with collaborators directly; not published.
+users_manual.md

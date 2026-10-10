@@ -622,3 +622,14 @@ def test_quick_check_feedback_stays_while_the_student_tries_the_page():
     assert "Not quite" in texts(at.warning)
     at.radio(key="quick_qc-t1-1").set_value("undefined until someone looks").run()
     assert "Not quite" not in texts(at.warning)     # a new choice needs a new check
+
+
+def test_t1_clear_tally_lets_the_student_make_a_new_coin_prediction():
+    at = run_page("t1")
+    at.number_input(key="t1_coin100_prediction").set_value(50).run()
+    at.button(key="t1_coin100_run").click().run()
+    assert at.number_input(key="t1_coin100_prediction").disabled
+    at.button(key="t1_clear").click().run()
+    assert at.session_state["t1_tally"] == [0, 0]
+    assert not at.number_input(key="t1_coin100_prediction").disabled
+    assert at.number_input(key="t1_coin100_prediction").value is None

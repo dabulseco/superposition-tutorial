@@ -22,7 +22,7 @@ import streamlit as st
 
 from components import journey, layout, plots
 from components.chat_panel import chat_panel
-from components.prediction_gate import prediction_gate
+from components.prediction_gate import prediction_gate, reset_gate
 from components.quick_check import quick_check
 from physics import bits
 
@@ -143,8 +143,11 @@ with tally_side:
                    f"of {total} coins ({heads_total / total:.1%} heads). The "
                    f"more coins, the closer the fraction settles to 50%, even "
                    f"though no single slap can be predicted.")
-        if st.button("Clear tally", key="t1_clear"):
+        if st.button("Clear tally", key="t1_clear",
+                     help="Also unlocks the prediction, so you can make a "
+                          "new one."):
             state["t1_tally"] = [0, 0]
+            reset_gate("t1_coin100")
             st.rerun()
     else:
         st.caption("Chart: empty until you measure 100 coins.")
