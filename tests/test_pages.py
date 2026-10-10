@@ -94,3 +94,59 @@ def test_t3b_relocks_when_theta_changes_after_a_run():
     assert len(at.metric) == 0
     assert at.radio(key="t3b_prediction").value == "Choose one"
     assert "Settings changed" in texts(at.info)
+
+
+# ---- Topic 1: Bits & Superposition ------------------------------------------
+
+def test_t1_classical_bit_reports_the_set_state():
+    at = run_page("t1")
+    at.button(key="t1_measure_bit").click().run()
+    assert "It is exactly ON." in texts(at.success)
+    at.toggle(key="t1_switch_on").set_value(False).run()
+    at.button(key="t1_measure_bit").click().run()
+    assert "It is exactly OFF." in texts(at.success)
+
+
+def test_t1_switch_measured_ten_times_always_reads_the_same():
+    at = run_page("t1")
+    at.number_input(key="t1_switch10_prediction").set_value(10).run()
+    at.button(key="t1_switch10_run").click().run()
+    assert "ON 10 times out of 10" in all_text(at)
+    assert "Your prediction matches" in texts(at.success)
+
+
+def test_t1_coin_snaps_then_resets():
+    at = run_page("t1")
+    assert "spinning in a blur" in all_text(at)
+    assert at.button(key="t1_coin_btn").label == "Measure Coin (Slap it down!)"
+    at.button(key="t1_coin_btn").click().run()
+    assert at.session_state["t1_coin"] in ("HEADS", "TAILS")
+    assert f"It snapped to: {at.session_state['t1_coin']}" in all_text(at)
+    assert at.button(key="t1_coin_btn").label == "Reset (Spin Again)"
+    at.button(key="t1_coin_btn").click().run()
+    assert at.session_state["t1_coin"] is None
+    assert "spinning in a blur" in all_text(at)
+
+
+def test_t1_hundred_coins_need_a_prediction_and_add_to_the_tally():
+    at = run_page("t1")
+    assert at.session_state["t1_tally"] == [0, 0]
+    at.number_input(key="t1_coin100_prediction").set_value(50).run()
+    at.button(key="t1_coin100_run").click().run()
+    assert sum(at.session_state["t1_tally"]) == 100
+    at.button(key="t1_coin100_run").click().run()
+    assert sum(at.session_state["t1_tally"]) == 200
+    runs = [e for e in at.session_state["journey"] if e["type"] == "measure_100_coins"]
+    assert len(runs) == 2 and runs[0]["details"]["prediction"] == 50
+
+
+def test_t1_explains_where_the_coin_analogy_breaks():
+    at = run_page("t1")
+    assert at.expander[0].label == "Where the analogy breaks"
+    assert "classical mixture" in texts(at.expander[0].markdown)
+
+
+def test_t1_works_with_ollama_off():
+    at = run_page("t1")
+    assert not at.exception
+    assert "The tutor is off" in texts(at.info)
