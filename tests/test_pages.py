@@ -150,3 +150,68 @@ def test_t1_works_with_ollama_off():
     at = run_page("t1")
     assert not at.exception
     assert "The tutor is off" in texts(at.info)
+
+
+# ---- Topic 2: Coupled Oscillators -------------------------------------------
+
+def metrics(at):
+    return {m.label: m.value for m in at.metric}
+
+
+def test_t2_starts_at_right_40_for_both_weights():
+    at = run_page("t2")
+    assert not at.exception
+    assert at.slider(key="t2_x1").value == 40 and at.slider(key="t2_x2").value == 40
+    assert "Right 40" in all_text(at)
+
+
+def test_t2_pattern_1_preset_plays_pattern_1_only():
+    at = run_page("t2")
+    at.slider(key="t2_x1").set_value(-10).run()
+    at.button(key="t2_preset_p1").click().run()
+    assert (at.slider(key="t2_x1").value, at.slider(key="t2_x2").value) == (40, 40)
+    assert metrics(at)["Pattern 1 amplitude"] == "40"
+    assert metrics(at)["Pattern 2 amplitude"] == "0"
+
+
+def test_t2_pattern_2_preset_plays_pattern_2_only():
+    at = run_page("t2")
+    at.button(key="t2_preset_p2").click().run()
+    assert (at.slider(key="t2_x1").value, at.slider(key="t2_x2").value) == (40, -40)
+    assert metrics(at)["Pattern 1 amplitude"] == "0"
+    assert metrics(at)["Pattern 2 amplitude"] == "40"
+
+
+def test_t2_random_preset_always_mixes_both_patterns():
+    at = run_page("t2")
+    for _ in range(5):
+        at.button(key="t2_preset_random").click().run()
+        assert abs(at.slider(key="t2_x1").value) != abs(at.slider(key="t2_x2").value)
+        assert metrics(at)["Pattern 1 amplitude"] != "0"
+        assert metrics(at)["Pattern 2 amplitude"] != "0"
+
+
+def test_t2_prediction_sets_up_the_one_sided_pull():
+    at = run_page("t2")
+    at.radio(key="t2_predict_prediction").set_value("Both, in equal amounts").run()
+    at.button(key="t2_predict_run").click().run()
+    assert (at.slider(key="t2_x1").value, at.slider(key="t2_x2").value) == (40, 0)
+    assert metrics(at)["Pattern 1 amplitude"] == "20"
+    assert metrics(at)["Pattern 2 amplitude"] == "20"
+    assert "Your prediction matches" in texts(at.success)
+
+
+def test_t2_spectrum_peaks_agree_with_the_pattern_amplitudes():
+    at = run_page("t2")
+    at.slider(key="t2_x2").set_value(-10).run()      # x1 = 40, x2 = -10
+    assert metrics(at)["Pattern 1 amplitude"] == "15"
+    assert metrics(at)["Pattern 2 amplitude"] == "25"
+    assert "peaks of height 15.0 and 25.0" in all_text(at)
+
+
+def test_t2_both_weights_at_center_does_not_break():
+    at = run_page("t2")
+    at.slider(key="t2_x1").set_value(0).run()
+    at.slider(key="t2_x2").set_value(0).run()
+    assert not at.exception
+    assert "No state yet" in all_text(at)

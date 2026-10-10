@@ -177,3 +177,41 @@ def test_number_gate_unlocks_once_a_number_is_entered():
     assert "prediction=50" in _shown(at)
     at.button[0].click().run()
     assert "RESULT" in _shown(at)
+
+
+# ---- state card ------------------------------------------------------------
+
+import pytest
+
+from components import state_card
+
+
+def test_sphere_angles_for_pure_and_equal_states():
+    assert state_card.sphere_angles(1, 0) == (0.0, 0.0)
+    assert state_card.sphere_angles(0, 1)[0] == pytest.approx(180.0)
+    assert state_card.sphere_angles(1, 1)[0] == pytest.approx(90.0)
+
+
+def test_sphere_angles_match_the_qubit_formula():
+    theta, phi = state_card.sphere_angles(0.8, 0.6, 30)
+    assert theta == pytest.approx(73.74, abs=0.01)
+    assert phi == pytest.approx(30.0)
+
+
+def test_opposite_signs_count_as_a_half_turn_of_phase():
+    assert state_card.sphere_angles(1, -1) == (pytest.approx(90.0), pytest.approx(180.0))
+
+
+def test_no_state_when_both_amplitudes_are_zero():
+    assert state_card.sphere_angles(0, 0) is None
+
+
+def _card_app():
+    from components.state_card import state_card
+    state_card(0, 0, labels=("Pattern 1", "Pattern 2"))
+
+
+def test_state_card_with_no_state_says_so():
+    at = AppTest.from_function(_card_app).run()
+    assert not at.exception
+    assert "No state yet" in " ".join(c.value for c in at.caption)
