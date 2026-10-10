@@ -277,3 +277,77 @@ def test_t3_changing_the_mix_clears_old_data_and_relocks():
     at.slider(key="t3_p").set_value(70).run()
     assert at.session_state["t3_outcomes"] == []
     assert at.number_input(key="t3_predict_prediction").value is None
+
+
+# ---- Topic 4: Phi-Bit Systems -----------------------------------------------
+
+def test_t4_starts_in_pure_state_0():
+    at = run_page("t4")
+    assert not at.exception
+    assert at.slider(key="t4_left").value == 100 and at.slider(key="t4_right").value == 0
+    assert "Pure State 0 (Only Left)" in texts(at.info)
+
+
+def test_t4_presets_give_the_matching_status():
+    at = run_page("t4")
+    at.button(key="t4_preset_right").click().run()
+    assert "Pure State 1 (Only Right)" in texts(at.info)
+    at.button(key="t4_preset_super").click().run()
+    assert (at.slider(key="t4_left").value, at.slider(key="t4_right").value) == (100, 100)
+    assert "50/50 Superposition! (Standing Wave)" in texts(at.info)
+    at.button(key="t4_preset_left").click().run()
+    assert "Pure State 0 (Only Left)" in texts(at.info)
+
+
+def test_t4_sliders_are_labeled_as_amplitudes_with_power_readouts():
+    at = run_page("t4")
+    assert at.slider(key="t4_left").label == "LEFT Wave Amplitude"
+    assert at.slider(key="t4_right").label == "RIGHT Wave Amplitude"
+    at.slider(key="t4_left").set_value(80).run()
+    at.slider(key="t4_right").set_value(60).run()
+    values = metrics(at)
+    assert values["LEFT wave power"] == "0.64"
+    assert values["RIGHT wave power"] == "0.36"
+    assert values["Share of State 1"] == "36%"
+    assert "Superposition! (Uneven Mix)" in texts(at.info)
+
+
+def test_t4_no_waves_does_not_break():
+    at = run_page("t4")
+    at.slider(key="t4_left").set_value(0).run()
+    assert not at.exception
+    assert "You turned off all waves!" in texts(at.info)
+    assert metrics(at)["Share of State 1"] == "—"
+    assert "No state yet" in all_text(at)
+
+
+def test_t4_phase_slides_the_still_points():
+    at = run_page("t4")
+    at.button(key="t4_preset_super").click().run()
+    assert "have not moved" in all_text(at)
+    at.slider(key="t4_delta").set_value(60).run()
+    assert "moved 0.67 weight spacings" in all_text(at)
+    assert "50/50 Superposition! (Standing Wave)" in texts(at.info)
+
+
+def test_t4_phase_prediction_sets_up_a_5050_mix():
+    at = run_page("t4")
+    at.radio(key="t4_predict_prediction").set_value(
+        "They slide along the chain; the wave stays standing").run()
+    at.button(key="t4_predict_run").click().run()
+    assert (at.slider(key="t4_left").value, at.slider(key="t4_right").value) == (100, 100)
+    assert "Your prediction matches" in texts(at.success)
+
+
+def test_t4_opens_on_the_preset_a_revisit_link_asks_for():
+    at = run_page("t4", arrive_t4="superposition")
+    assert (at.slider(key="t4_left").value, at.slider(key="t4_right").value) == (100, 100)
+
+
+def test_t4_real_chain_has_a_lowest_frequency():
+    at = run_page("t4")
+    at.toggle(key="t4_real").set_value(True).run()
+    assert "No traveling wave at this frequency" not in texts(at.warning)
+    at.slider(key="t4_freq").set_value(0.5).run()
+    assert not at.exception
+    assert "No traveling wave at this frequency" in texts(at.warning)
