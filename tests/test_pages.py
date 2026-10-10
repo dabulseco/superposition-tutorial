@@ -351,3 +351,130 @@ def test_t4_real_chain_has_a_lowest_frequency():
     at.slider(key="t4_freq").set_value(0.5).run()
     assert not at.exception
     assert "No traveling wave at this frequency" in texts(at.warning)
+
+
+# ---- Test Your Understanding ------------------------------------------------
+
+import feedback
+import tutor
+
+Q1 = "What is a superposition state?"
+MY_ANSWER = "It is when a thing is in two states at once."
+REPLY = 'You wrote "two states at once". What happens when you measure?'
+
+
+def tyu(model="m"):
+    """The page with a tutor model already picked (as the sidebar would)."""
+    return run_page("tyu", tutor_model=model)
+
+
+def submit(at, qid, answer):
+    at.text_area(key=f"tyu_draft_{qid}").set_value(answer).run()
+    at.button(key=f"tyu_submit_{qid}").click().run()
+    return at
+
+
+def test_tyu_shows_the_three_spelman_questions_with_ollama_off():
+    at = run_page("tyu")
+    assert not at.exception
+    page = all_text(at)
+    for question in feedback.load_questions():
+        assert question["text"] in page
+
+
+def test_tyu_submit_saves_attempt_one_with_feedback(ollama):
+    ollama.replies = [REPLY]
+    at = submit(tyu(), "q1", MY_ANSWER)
+    attempts = at.session_state["tyu_attempts"]["q1"]
+    assert len(attempts) == 1
+    assert attempts[0]["number"] == 1 and attempts[0]["answer"] == MY_ANSWER
+    assert attempts[0]["feedback"]["text"] == REPLY
+    assert REPLY in all_text(at)
+    event = at.session_state["journey"][-1]
+    assert event["type"] == "tyu_submit"
+    assert event["details"]["question_id"] == "q1"
+    assert event["details"]["feedback"] == REPLY
+
+
+def test_tyu_second_submit_adds_attempt_two_and_keeps_attempt_one(ollama):
+    ollama.replies = [REPLY, "Second feedback."]
+    at = submit(tyu(), "q1", MY_ANSWER)
+    at = submit(at, "q1", MY_ANSWER + " Measuring gives one result.")
+    attempts = at.session_state["tyu_attempts"]["q1"]
+    assert [a["number"] for a in attempts] == [1, 2]
+    assert attempts[0]["answer"] == MY_ANSWER
+    assert attempts[0]["feedback"]["text"] == REPLY
+    assert attempts[1]["feedback"]["text"] == "Second feedback."
+
+
+def test_tyu_empty_or_blank_answer_is_not_submitted(ollama):
+    at = tyu()
+    at.button(key="tyu_submit_q1").click().run()
+    at = submit(at, "q1", "   \n  ")
+    assert at.session_state["tyu_attempts"].get("q1", []) == []
+    assert "Write an answer" in texts(at.warning)
+    assert ollama.requests == []
+
+
+def test_tyu_answers_are_capped_at_4000_characters():
+    at = run_page("tyu")
+    assert at.text_area(key="tyu_draft_q1").proto.max_chars == 4000
+
+
+def test_tyu_confidence_is_saved_with_the_attempt(ollama):
+    ollama.replies = [REPLY]
+    at = tyu()
+    at.select_slider(key="tyu_confidence_q1").set_value("4").run()
+    at = submit(at, "q1", MY_ANSWER)
+    assert at.session_state["tyu_attempts"]["q1"][0]["confidence"] == 4
+
+
+def test_tyu_saves_the_answer_when_the_tutor_is_off():
+    at = submit(run_page("tyu"), "q1", MY_ANSWER)      # no model picked
+    attempts = at.session_state["tyu_attempts"]["q1"]
+    assert len(attempts) == 1 and attempts[0]["feedback"] is None
+    assert "Your answer is saved. Feedback is unavailable right now." in all_text(at)
+
+
+def test_tyu_saves_the_answer_when_ollama_fails_mid_feedback():
+    at = submit(tyu(), "q1", MY_ANSWER)      # model picked, but Ollama is dead
+    assert not at.exception
+    attempts = at.session_state["tyu_attempts"]["q1"]
+    assert len(attempts) == 1 and attempts[0]["feedback"] is None
+    assert "Your answer is saved. Feedback is unavailable right now." in all_text(at)
+
+
+def test_tyu_questions_keep_separate_drafts_and_attempts(ollama):
+    ollama.replies = [REPLY]
+    at = tyu()
+    at.text_area(key="tyu_draft_q2").set_value("my q2 draft").run()
+    at = submit(at, "q1", MY_ANSWER)
+    assert at.text_area(key="tyu_draft_q2").value == "my q2 draft"
+    assert "q2" not in at.session_state["tyu_attempts"]
+
+
+def test_tyu_discuss_seeds_the_chat_and_forbids_writing_the_answer(ollama):
+    ollama.replies = [REPLY]
+    at = submit(tyu(), "q1", MY_ANSWER)
+    at.button(key="tyu_discuss_q1").click().run()
+    chat = at.session_state["chat_tyu_q1"]
+    assert Q1 in chat[0]["content"] and MY_ANSWER in chat[0]["content"]
+    assert chat[1]["role"] == "assistant"
+    system = ollama.requests[-1]["messages"][0]["content"]
+    assert "Do not write or rewrite the student's answer" in system
+
+
+def test_tyu_warns_about_personal_information_when_hosted(monkeypatch, ollama):
+    monkeypatch.setenv("OLLAMA_API_KEY", "test-key")
+    tutor.load_settings()
+    at = tyu()
+    assert "don't type personal information" in texts(at.caption)
+
+
+def test_tyu_reports_a_broken_questions_file(monkeypatch, tmp_path):
+    bad = tmp_path / "questions.yaml"
+    bad.write_text("questions:\n  - id: q1\n")
+    monkeypatch.setattr(feedback, "QUESTIONS_FILE", bad)
+    at = run_page("tyu")
+    assert not at.exception
+    assert "Problem in questions.yaml" in texts(at.error)

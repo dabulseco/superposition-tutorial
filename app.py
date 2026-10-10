@@ -45,6 +45,7 @@ can download it from the My Journey page.
 
 import streamlit as st
 
+import feedback
 import tutor
 from components import layout
 from components.chat_panel import model_picker
@@ -62,6 +63,12 @@ def main():
     # model was picked.
     layout.progress_sidebar()
     model_picker()
+
+    # A typo in the questions file should be visible at once, on any page.
+    try:
+        feedback.load_questions(valid_pages=set(layout.PAGE_FILES))
+    except feedback.ContentError as err:
+        st.error(str(err))
 
     current.run()
     layout.footer()

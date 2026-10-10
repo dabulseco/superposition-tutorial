@@ -189,6 +189,12 @@ def load_notes(page_id: str, notes_dir: Path | None = None) -> str:
     return "\n\n".join(parts)
 
 
+def _page_notes(page_id: str, notes_dir: Path | None = None) -> str:
+    """One page's own notes, without the shared ones ("" if none)."""
+    path = (NOTES_DIR if notes_dir is None else Path(notes_dir)) / f"{page_id}.md"
+    return path.read_text(encoding="utf-8").strip() if path.is_file() else ""
+
+
 def build_system_prompt(context: dict, notes_dir: Path | None = None) -> str:
     """
     Write the tutor's instructions for one page, including its live settings.
@@ -202,6 +208,8 @@ def build_system_prompt(context: dict, notes_dir: Path | None = None) -> str:
         revealed        True once the student has run or measured
         hold_back       what must not be given away before that
         extra_rules     optional list of further rules for this page
+        notes_pages     optional list of page ids whose notes to use
+                        instead of this page's own
     """
     settings = "\n".join(f"- {line}" for line in context["settings_lines"])
     results = context.get("results_lines", [])
@@ -219,6 +227,14 @@ def build_system_prompt(context: dict, notes_dir: Path | None = None) -> str:
         )
 
     extra_rules = "\n".join(context.get("extra_rules", []))
+
+    # Usually a page uses its own notes. A page can ask for other pages'
+    # notes instead (Test Your Understanding draws on the topic pages).
+    note_pages = list(dict.fromkeys(
+        context.get("notes_pages", [context["page_id"]])))
+    notes = "\n\n".join(filter(None, (
+        [load_notes("shared", notes_dir)]
+        + [_page_notes(page, notes_dir) for page in note_pages])))
 
     return f"""You are a patient physics tutor helping an undergraduate use an
 interactive primer on superposition. Its topics are: classical bits and a
@@ -279,7 +295,7 @@ CURRENT SETTINGS ON THE PAGE
 {numbers}
 
 REFERENCE NOTES
-{load_notes(context['page_id'], notes_dir)}"""
+{notes}"""
 
 
 # -----------------------------------------------------------------------------

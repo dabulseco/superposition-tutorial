@@ -176,3 +176,12 @@ def test_ask_json_raises_value_error_for_non_json(ollama):
 def test_one_shot_calls_report_ollama_off():
     with pytest.raises(tutor.OllamaUnavailable):
         tutor.ask_text("m", "sys", "user")
+
+
+def test_prompt_can_draw_on_other_pages_notes(tmp_path):
+    (tmp_path / "t4.md").write_text("PHIBIT-NOTE")
+    (tmp_path / "t1.md").write_text("COIN-NOTE")
+    prompt = tutor.build_system_prompt(
+        make_context(page_id="tyu", notes_pages=["t4", "t1", "t4"]),
+        notes_dir=tmp_path)
+    assert prompt.count("PHIBIT-NOTE") == 1 and "COIN-NOTE" in prompt
