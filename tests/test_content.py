@@ -123,3 +123,69 @@ def test_broken_yaml_is_reported_not_crashed(tmp_path):
 def test_missing_file_is_reported(tmp_path):
     with pytest.raises(feedback.ContentError, match="nowhere.yaml"):
         feedback.load_questions(tmp_path / "nowhere.yaml", VALID_PAGES)
+
+
+# ---- quick_checks.yaml ------------------------------------------------------
+
+def test_shipped_quick_checks_are_two_per_topic_with_one_right_answer():
+    items = feedback.load_quick_checks(valid_pages=VALID_PAGES)
+    assert len(items) == 8
+    for page in ("t1", "t2", "t3", "t4"):
+        assert sum(item["page"] == page for item in items) == 2
+    for item in items:
+        assert sum(bool(o.get("correct")) for o in item["options"]) == 1
+        assert all(o.get("correct") or o["feedback"] for o in item["options"])
+
+
+def test_shipped_quick_check_answers_match_the_spec():
+    answers = {item["id"]: next(o["text"] for o in item["options"] if o.get("correct"))
+               for item in feedback.load_quick_checks(valid_pages=VALID_PAGES)}
+    assert answers == {
+        "qc-t1-1": "a classical bit in a definite state",
+        "qc-t1-2": "close to 50 heads, but rarely exactly 50",
+        "qc-t2-1": "Pattern 1 only",
+        "qc-t2-2": "both, equally",
+        "qc-t3-1": "about 70 UP",
+        "qc-t3-2": "UP",
+        "qc-t4-1": "a standing wave",
+        "qc-t4-2": "State 1",
+    }
+
+
+ITEM = """
+items:
+  - id: qc-1
+    page: t1
+    question: "A question?"
+    try: "Try the switch."
+    options:
+      - {text: "right", correct: true}
+      - {text: "wrong", feedback: "Think again."}
+"""
+
+
+def test_an_empty_quick_check_file_hides_the_feature(tmp_path):
+    path = tmp_path / "quick_checks.yaml"
+    path.write_text("items: []\n")
+    assert feedback.load_quick_checks(path, VALID_PAGES) == []
+    path.write_text("")
+    assert feedback.load_quick_checks(path, VALID_PAGES) == []
+    assert feedback.load_quick_checks(tmp_path / "missing.yaml", VALID_PAGES) == []
+
+
+@pytest.mark.parametrize("change, problem", [
+    (("page: t1", "page: t7"), "t7"),
+    (('{text: "right", correct: true}', '{text: "right", feedback: "x"}'),
+     "exactly one"),
+    (('{text: "wrong", feedback: "Think again."}', '{text: "wrong"}'), "feedback"),
+    (('{text: "wrong", feedback: "Think again."}',
+      '{text: "wrong", correct: true}'), "exactly one"),
+    (('question: "A question?"', 'question: ""'), "question"),
+    (("id: qc-1", "name: qc-1"), "id"),
+])
+def test_quick_check_mistakes_are_named(tmp_path, change, problem):
+    path = tmp_path / "quick_checks.yaml"
+    path.write_text(ITEM.replace(*change))
+    with pytest.raises(feedback.ContentError) as error:
+        feedback.load_quick_checks(path, VALID_PAGES)
+    assert "quick_checks.yaml" in str(error.value) and problem in str(error.value)

@@ -23,6 +23,7 @@ import streamlit as st
 from components import journey, layout, plots
 from components.chat_panel import chat_panel
 from components.prediction_gate import prediction_gate
+from components.quick_check import quick_check
 from physics import bits
 
 PAGE_ID = "t1"
@@ -187,5 +188,6 @@ def tutor_context() -> dict:
     }
 
 
+quick_check(PAGE_ID)
 chat_panel(tutor_context(), starter_questions=text["starter_questions"])
 layout.prev_next(PAGE_ID)

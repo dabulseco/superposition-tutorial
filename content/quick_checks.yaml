@@ -1,0 +1,122 @@
+# Quick checks: two short multiple-choice items at the end of each topic.
+#
+# These are DRAFT items for the Spelman College team to keep, edit, or drop.
+# To hide the feature entirely, replace everything below with:   items: []
+#
+# Each item: id (unique), page (t1, t2, t3, or t4), question, a "try" hint
+# (what to revisit on the page), and options. Exactly one option has
+# "correct: true". Every other option needs "feedback": what to think about,
+# without simply giving the answer.
+
+items:
+  - id: qc-t1-1
+    page: t1
+    question: "A coin resting heads-up on a table is best described as:"
+    try: "Measure the light switch several times, then compare: is the resting coin more like the switch or like the spinning coin?"
+    options:
+      - text: "a superposition of heads and tails"
+        feedback: "A superposition hasn't picked a state yet. Has a coin lying heads-up picked one?"
+      - text: "a classical bit in a definite state"
+        correct: true
+      - text: "50% heads"
+        feedback: "50% describes what to expect before a spinning coin lands. This coin has already landed."
+      - text: "undefined until someone looks"
+        feedback: "Would the coin show something different if nobody had looked? Compare it with the light switch."
+
+  - id: qc-t1-2
+    page: t1
+    question: "You slap 100 spinning coins. The most reasonable expectation is:"
+    try: "Press Measure 100 coins several times and note the number of heads each time."
+    options:
+      - text: "exactly 50 heads"
+        feedback: "Run Measure 100 coins a few times. How often do you get exactly 50?"
+      - text: "close to 50 heads, but rarely exactly 50"
+        correct: true
+      - text: "all heads or all tails"
+        feedback: "Each coin lands on its own. What would it take for all 100 to agree?"
+      - text: "impossible to say"
+        feedback: "One slap can't be predicted, but what about the pattern over many slaps?"
+
+  - id: qc-t2-1
+    page: t2
+    question: "Both weights start at Right 40. Which patterns play?"
+    try: "Press the preset \"Pattern 1 Only (Both Right)\" and read the two pattern amplitudes."
+    options:
+      - text: "Pattern 1 only"
+        correct: true
+      - text: "Pattern 2 only"
+        feedback: "In Pattern 2 the weights move in opposite directions. Do they start out opposite here?"
+      - text: "both"
+        feedback: "Set both sliders to Right 40 and look at the Fourier transform. How many peaks are there?"
+      - text: "neither"
+        feedback: "The weights were pulled away from rest, so something must move. Which pattern matches \"both the same way\"?"
+
+  - id: qc-t2-2
+    page: t2
+    question: "Weight 1 at Right 40, weight 2 at center. Which patterns play?"
+    try: "Set weight 1 to Right 40 and weight 2 to Center 0, then compare the two bars on the state card."
+    options:
+      - text: "Pattern 1 only"
+        feedback: "Pattern 1 alone needs both weights displaced equally. Is that the case here?"
+      - text: "Pattern 2 only"
+        feedback: "Pattern 2 alone needs equal and opposite displacements. Is that the case here?"
+      - text: "both, equally"
+        correct: true
+      - text: "neither"
+        feedback: "One weight was pulled, so the system moves. Try the settings and look at the pattern amplitudes."
+
+  - id: qc-t3-1
+    page: t3
+    question: "You set 70% UP and measure 100 times. Most likely:"
+    try: "Set the slider to 70% UP and press Measure 100x a few times."
+    options:
+      - text: "exactly 70 UP"
+        feedback: "Each measurement is random. Press Measure 100x several times at 70%: do you get the same count each time?"
+      - text: "about 70 UP"
+        correct: true
+      - text: "50 UP"
+        feedback: "50 would fit a 50/50 mix. What did the slider set the chance of UP to?"
+      - text: "100 UP"
+        feedback: "That would need UP to be certain. Is 70% certain?"
+
+  - id: qc-t3-2
+    page: t3
+    question: "A measurement just gave UP. You measure the same qubit again right away. You get:"
+    try: "Press Measure 1x, then press \"Measure the same qubit again\" several times."
+    options:
+      - text: "UP"
+        correct: true
+      - text: "DOWN"
+        feedback: "Look at where the arrow points after a measurement. What does that say about the next result?"
+      - text: "a 70% chance of UP"
+        feedback: "70% described the qubit before it was measured. What state is it in after it snapped?"
+      - text: "50/50"
+        feedback: "After the measurement the arrow sits at a pole. How much chance is left there?"
+
+  - id: qc-t4-1
+    page: t4
+    question: "Left and right amplitudes are equal. The chain shows:"
+    try: "Press the preset \"Superposition (Both!)\" and play the animation."
+    options:
+      - text: "no wave"
+        feedback: "Both waves are on. Press the Superposition preset: are the weights still?"
+      - text: "a standing wave"
+        correct: true
+      - text: "a left-traveling wave"
+        feedback: "A wave travels left only when the left wave wins. What happens when neither wins?"
+      - text: "a right-traveling wave"
+        feedback: "A wave travels right only when the right wave wins. What happens when neither wins?"
+
+  - id: qc-t4-2
+    page: t4
+    question: "Only the right wave is on. This is:"
+    try: "Press each of the three presets and read the status box."
+    options:
+      - text: "State 0"
+        feedback: "Check the preset buttons: which direction goes with State 0?"
+      - text: "State 1"
+        correct: true
+      - text: "a 50/50 superposition"
+        feedback: "A superposition needs both waves present. How many are on here?"
+      - text: "a standing wave"
+        feedback: "A standing wave needs equal left and right waves. Is the left wave on?"

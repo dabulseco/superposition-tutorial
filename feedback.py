@@ -136,6 +136,60 @@ def load_questions(path: Path | None = None, valid_pages=None) -> list[dict]:
     return data["questions"]
 
 
+QUICK_CHECKS_FILE = Path(__file__).parent / "content" / "quick_checks.yaml"
+
+
+def load_quick_checks(path: Path | None = None, valid_pages=None) -> list[dict]:
+    """
+    Read and check the quick-check items (short multiple-choice questions
+    shown at the end of each topic). An empty or missing file returns an
+    empty list, which hides the feature.
+
+    Raises ContentError, naming the file and the problem, for a mistake.
+    """
+    path = QUICK_CHECKS_FILE if path is None else Path(path)
+    if not path.is_file():
+        return []
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as err:
+        raise ContentError(f"Problem in {path.name}: the file is not valid "
+                           f"YAML ({err})") from err
+    _require(isinstance(data, dict), path,
+             "it must start with 'items:' followed by a list")
+    items = data.get("items") or []
+    _require(isinstance(items, list), path, "'items' must be a list")
+
+    seen = set()
+    for item in items:
+        _require(isinstance(item, dict) and item.get("id"), path,
+                 "an item is missing its id")
+        item_id = item["id"]
+        _require(item_id not in seen, path,
+                 f"the id {item_id} is used more than once")
+        seen.add(item_id)
+        _require(isinstance(item.get("question"), str)
+                 and item["question"].strip(), path,
+                 f"item {item_id} is missing its question")
+        _require(valid_pages is None or item.get("page") in valid_pages, path,
+                 f"item {item_id} has a page '{item.get('page')}' that is "
+                 f"not a page of the app")
+        options = item.get("options")
+        _require(isinstance(options, list) and len(options) >= 2, path,
+                 f"item {item_id} needs at least two options")
+        for option in options:
+            _require(isinstance(option, dict) and option.get("text"), path,
+                     f"an option of {item_id} is missing its text")
+        _require(sum(bool(o.get("correct")) for o in options) == 1, path,
+                 f"item {item_id} must have exactly one option marked "
+                 f"'correct: true'")
+        for option in options:
+            _require(option.get("correct") or option.get("feedback"), path,
+                     f"the option '{option['text']}' of {item_id} needs "
+                     f"feedback (every wrong option does)")
+    return items
+
+
 def has_rubric(question: dict) -> bool:
     """True once key ideas have been written for this question."""
     return bool(question["key_ideas"])

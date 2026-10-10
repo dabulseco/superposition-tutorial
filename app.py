@@ -67,6 +67,7 @@ def main():
     # A typo in the questions file should be visible at once, on any page.
     try:
         feedback.load_questions(valid_pages=set(layout.PAGE_FILES))
+        feedback.load_quick_checks(valid_pages=set(layout.PAGE_FILES))
     except feedback.ContentError as err:
         st.error(str(err))
 

@@ -478,3 +478,37 @@ def test_tyu_reports_a_broken_questions_file(monkeypatch, tmp_path):
     at = run_page("tyu")
     assert not at.exception
     assert "Problem in questions.yaml" in texts(at.error)
+
+
+# ---- Quick checks -----------------------------------------------------------
+
+import pytest
+
+QUICK = [("t1", "qc-t1-1", "a classical bit in a definite state", "50% heads"),
+         ("t2", "qc-t2-2", "both, equally", "neither"),
+         ("t3", "qc-t3-2", "UP", "50/50"),
+         ("t4", "qc-t4-1", "a standing wave", "no wave")]
+
+
+@pytest.mark.parametrize("page, item, right, wrong", QUICK)
+def test_quick_check_gives_feedback_for_wrong_and_right_answers(page, item, right, wrong):
+    at = run_page(page)
+    assert "Quick check" in texts(at.subheader)
+    at.radio(key=f"quick_{item}").set_value(wrong).run()
+    at.button(key=f"quick_check_{item}").click().run()
+    assert not at.exception
+    assert "Not quite" in texts(at.warning)
+    assert right not in texts(at.warning)           # no answer given away
+    at.radio(key=f"quick_{item}").set_value(right).run()
+    at.button(key=f"quick_check_{item}").click().run()
+    assert "Correct" in texts(at.success)
+    checks = [e for e in at.session_state["journey"] if e["type"] == "quick_check"]
+    assert [c["details"]["correct"] for c in checks] == [False, True]
+    assert checks[0]["details"]["item_id"] == item
+
+
+def test_quick_check_needs_a_choice_first():
+    at = run_page("t1")
+    at.button(key="quick_check_qc-t1-1").click().run()
+    assert "Choose an answer first" in texts(at.info)
+    assert not [e for e in at.session_state["journey"] if e["type"] == "quick_check"]
