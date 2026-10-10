@@ -196,3 +196,38 @@ def test_ollama_off_is_passed_up_to_the_page():
         feedback.give_feedback("m", NO_RUBRIC, ANSWER)
     with pytest.raises(tutor.OllamaUnavailable):
         feedback.give_feedback("m", RUBRIC, ANSWER)
+
+
+# ---- hardening from review --------------------------------------------------
+
+from pathlib import Path
+
+DRAFT = {q["id"]: q for q in feedback.load_questions(
+    Path(feedback.QUESTIONS_FILE).with_name("questions.rubric-draft.yaml"))}
+
+
+def all_absent(question):
+    return {"key_ideas": [{"id": i["id"], "status": "absent", "evidence": ""}
+                          for i in question["key_ideas"]]}
+
+
+def test_giveaway_check_catches_one_half_of_a_two_part_idea():
+    text = "Equal amounts of the two waves make a standing wave."
+    assert feedback.copies_rubric(text, DRAFT["q2"], all_absent(DRAFT["q2"]))
+
+
+def test_giveaway_check_ignores_words_from_the_question_and_revisit_labels():
+    text = ("You noted that both have two outcomes. What can you say about "
+            "the coin before anyone looks at it? Revisit Topic 1: Bits & "
+            "Superposition, then Topic 3: Electrons & Qubits.")
+    assert not feedback.copies_rubric(text, DRAFT["q3"], all_absent(DRAFT["q3"]))
+
+
+@pytest.mark.parametrize("evidence", ["e", "is", "at once", "tates at onc"])
+def test_evidence_must_be_whole_words_and_more_than_a_scrap(ollama, evidence):
+    # "at once" is two real words from the answer, so it alone is accepted.
+    ollama.replies = [check(k1=("present", evidence)), check(k1=("absent", "")),
+                      GOOD_TEXT]
+    result = feedback.give_feedback("m", RUBRIC, ANSWER)
+    expected = "present" if evidence == "at once" else "absent"
+    assert statuses(result)["q1.k1"] == expected

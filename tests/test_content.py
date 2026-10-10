@@ -197,3 +197,53 @@ def test_readme_and_code_never_name_newfos():
              *(ROOT / "components").glob("*.py")]
     for path in files:
         assert "newfos" not in path.read_text().lower(), path.name
+
+
+# ---- hardening from review --------------------------------------------------
+
+@pytest.mark.parametrize("change, problem", [
+    (("key_ideas:", "key_idea:"), "key_idea"),
+    (("id: q1\n", "id: [q1]\n"), "id"),
+    (('{id: q1.k1, text: "an idea"}',
+      "{id: q1.k1, text: A combination of two, or more, states}"), "or more"),
+    (("page: t1}", "page: t1, preset: sideways}"), "sideways"),
+    (('label: "Topic 1"', "label: 1"), "label"),
+])
+def test_more_questions_file_mistakes_are_named(tmp_path, change, problem):
+    assert change[0] in GOOD
+    path = _write(tmp_path, GOOD.replace(*change))
+    with pytest.raises(feedback.ContentError) as error:
+        feedback.load_questions(path, VALID_PAGES)
+    assert problem in str(error.value)
+
+
+def test_a_known_preset_is_accepted(tmp_path):
+    body = GOOD.replace('{label: "Topic 1", page: t1}',
+                        '{label: "Topic 4", page: t4, preset: superposition}')
+    assert feedback.load_questions(_write(tmp_path, body), VALID_PAGES)
+
+
+def test_a_file_saved_in_the_wrong_encoding_is_reported(tmp_path):
+    path = tmp_path / "questions.yaml"
+    path.write_bytes(GOOD.replace("an idea", "a “smart” idea").encode("cp1252"))
+    with pytest.raises(feedback.ContentError, match="UTF-8"):
+        feedback.load_questions(path, VALID_PAGES)
+    quick = tmp_path / "quick_checks.yaml"
+    quick.write_bytes(ITEM.replace("Think again.", "Think …").encode("cp1252"))
+    with pytest.raises(feedback.ContentError, match="UTF-8"):
+        feedback.load_quick_checks(quick, VALID_PAGES)
+
+
+@pytest.mark.parametrize("change, problem", [
+    (('{text: "wrong", feedback: "Think again."}',
+      '{text: "right", feedback: "Think again."}'), "more than once"),
+    (("    try:", "    tries:"), "tries"),
+    (('{text: "right", correct: true}', '{text: 5, correct: true}'), "text"),
+])
+def test_more_quick_check_mistakes_are_named(tmp_path, change, problem):
+    assert change[0] in ITEM
+    path = tmp_path / "quick_checks.yaml"
+    path.write_text(ITEM.replace(*change))
+    with pytest.raises(feedback.ContentError) as error:
+        feedback.load_quick_checks(path, VALID_PAGES)
+    assert problem in str(error.value)

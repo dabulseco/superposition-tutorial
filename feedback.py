@@ -66,12 +66,56 @@ def _require(condition: bool, path: Path, problem: str) -> None:
         raise ContentError(f"Problem in {path.name}: {problem}")
 
 
+# The only entries each part of the files may have. Anything else is
+# almost always a typo (key_idea for key_ideas) or a line YAML split at a
+# comma, and silently ignoring it would switch a rubric off without warning.
+QUESTION_KEYS = {"id", "text", "revisit", "key_ideas", "misconceptions"}
+ENTRY_KEYS = {"id", "text", "advanced"}
+REVISIT_KEYS = {"label", "page", "preset"}
+ITEM_KEYS = {"id", "page", "question", "try", "options"}
+OPTION_KEYS = {"text", "correct", "feedback"}
+
+# Presets a revisit link may ask a page to open on.
+PRESETS = {"t4": {"superposition"}}
+
+
+def _read_yaml(path: Path):
+    """Read a YAML file, turning every way it can fail into a ContentError."""
+    try:
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise ContentError(f"Problem in {path.name}: the file is missing "
+                           f"(expected at {path})") from None
+    except UnicodeDecodeError:
+        raise ContentError(
+            f"Problem in {path.name}: the file is not saved as UTF-8 text. "
+            f"Re-save it with UTF-8 encoding (curly quotes pasted from a "
+            f"word processor are the usual cause).") from None
+    except yaml.YAMLError as err:
+        raise ContentError(f"Problem in {path.name}: the file is not valid "
+                           f"YAML ({err})") from err
+
+
+def _only_keys(entry: dict, allowed: set, path: Path, where: str) -> None:
+    extra = [str(key) for key in entry if key not in allowed]
+    _require(not extra, path,
+             f"{where} has an entry the app does not know: "
+             f"{', '.join(repr(k) for k in extra)}. Allowed: "
+             f"{', '.join(sorted(allowed))}. (If the text contains a comma "
+             f"or colon, put it in quotation marks.)")
+
+
+def _is_text(value) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
 def _check_entries(entries, path: Path, where: str, seen: set) -> list[dict]:
     """Key ideas or misconceptions: each needs a unique id and some text."""
     _require(isinstance(entries, list), path, f"{where} must be a list")
     for entry in entries:
-        _require(isinstance(entry, dict) and entry.get("id"), path,
+        _require(isinstance(entry, dict) and _is_text(entry.get("id")), path,
                  f"an entry in {where} is missing its id")
+        _only_keys(entry, ENTRY_KEYS, path, f"{entry['id']} in {where}")
         _require(isinstance(entry.get("text"), str) and entry["text"].strip(),
                  path, f"{entry['id']} in {where} is missing its text")
         _require(entry["id"] not in seen, path,
@@ -90,14 +134,7 @@ def load_questions(path: Path | None = None, valid_pages=None) -> list[dict]:
     wrong, so a typo shows up at startup rather than in front of a student.
     """
     path = QUESTIONS_FILE if path is None else Path(path)
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        raise ContentError(f"Problem in {path.name}: the file is missing "
-                           f"(expected at {path})") from None
-    except yaml.YAMLError as err:
-        raise ContentError(f"Problem in {path.name}: the file is not valid "
-                           f"YAML ({err})") from err
+    data = _read_yaml(path)
 
     _require(isinstance(data, dict) and isinstance(data.get("questions"), list)
              and data["questions"], path,
@@ -105,9 +142,11 @@ def load_questions(path: Path | None = None, valid_pages=None) -> list[dict]:
 
     seen_ids = set()
     for question in data["questions"]:
-        _require(isinstance(question, dict) and question.get("id"), path,
-                 "a question is missing its id")
+        _require(isinstance(question, dict) and _is_text(question.get("id")),
+                 path, "a question is missing its id (ids are plain text, "
+                       "for example q1)")
         qid = question["id"]
+        _only_keys(question, QUESTION_KEYS, path, f"question {qid}")
         _require(qid not in seen_ids, path,
                  f"the question id {qid} is used more than once")
         seen_ids.add(qid)
@@ -119,9 +158,15 @@ def load_questions(path: Path | None = None, valid_pages=None) -> list[dict]:
         _require(isinstance(revisit, list) and revisit, path,
                  f"question {qid} needs at least one revisit entry")
         for link in revisit:
-            _require(isinstance(link, dict) and link.get("label")
-                     and link.get("page"), path,
-                     f"a revisit entry of {qid} needs a label and a page")
+            _require(isinstance(link, dict) and _is_text(link.get("label"))
+                     and _is_text(link.get("page")), path,
+                     f"a revisit entry of {qid} needs a label and a page, "
+                     f"both as text")
+            _only_keys(link, REVISIT_KEYS, path, f"a revisit entry of {qid}")
+            preset = link.get("preset")
+            _require(preset is None or preset in PRESETS.get(link["page"], ()),
+                     path, f"question {qid} asks page '{link['page']}' for a "
+                           f"preset '{preset}' that it does not have")
             _require(valid_pages is None or link["page"] in valid_pages, path,
                      f"question {qid} has a revisit page '{link['page']}' "
                      f"that is not a page of the app")
@@ -150,11 +195,7 @@ def load_quick_checks(path: Path | None = None, valid_pages=None) -> list[dict]:
     path = QUICK_CHECKS_FILE if path is None else Path(path)
     if not path.is_file():
         return []
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as err:
-        raise ContentError(f"Problem in {path.name}: the file is not valid "
-                           f"YAML ({err})") from err
+    data = _read_yaml(path) or {}
     _require(isinstance(data, dict), path,
              "it must start with 'items:' followed by a list")
     items = data.get("items") or []
@@ -162,9 +203,10 @@ def load_quick_checks(path: Path | None = None, valid_pages=None) -> list[dict]:
 
     seen = set()
     for item in items:
-        _require(isinstance(item, dict) and item.get("id"), path,
+        _require(isinstance(item, dict) and _is_text(item.get("id")), path,
                  "an item is missing its id")
         item_id = item["id"]
+        _only_keys(item, ITEM_KEYS, path, f"item {item_id}")
         _require(item_id not in seen, path,
                  f"the id {item_id} is used more than once")
         seen.add(item_id)
@@ -178,8 +220,13 @@ def load_quick_checks(path: Path | None = None, valid_pages=None) -> list[dict]:
         _require(isinstance(options, list) and len(options) >= 2, path,
                  f"item {item_id} needs at least two options")
         for option in options:
-            _require(isinstance(option, dict) and option.get("text"), path,
-                     f"an option of {item_id} is missing its text")
+            _require(isinstance(option, dict) and _is_text(option.get("text")),
+                     path, f"an option of {item_id} is missing its text "
+                           f"(put numbers in quotation marks)")
+            _only_keys(option, OPTION_KEYS, path, f"an option of {item_id}")
+        texts = [option["text"] for option in options]
+        _require(len(set(texts)) == len(texts), path,
+                 f"item {item_id} lists the same option more than once")
         _require(sum(bool(o.get("correct")) for o in options) == 1, path,
                  f"item {item_id} must have exactly one option marked "
                  f"'correct: true'")
@@ -319,10 +366,16 @@ def clean_rubric(raw, question: dict, answer: str) -> tuple[dict, bool]:
     def quoted(entry) -> str | None:
         """The entry's evidence if it truly appears in the answer."""
         evidence = entry.get("evidence")
-        if isinstance(evidence, str) and evidence.strip() \
-                and _normalize(evidence) in said:
-            return evidence.strip()
-        return None
+        if not isinstance(evidence, str):
+            return None
+        quote = _normalize(evidence)
+        # A scrap such as "is" or "e" appears in every answer and proves
+        # nothing, so a quote needs at least two words, and it must match
+        # whole words ("tate" is not found inside "state").
+        if len(quote.split()) < 2:
+            return None
+        whole = r"(?<!\w)" + re.escape(quote) + r"(?!\w)"
+        return evidence.strip() if re.search(whole, said) else None
 
     found = {}
     for entry in raw["key_ideas"]:
@@ -374,21 +427,40 @@ def _rubric_check(model: str, question: dict, answer: str) -> dict | None:
     return result
 
 
+def _stems(text: str) -> set:
+    """Meaningful words, lower case, with a plural "s" removed."""
+    words = (w for w in re.findall(r"[a-z0-9]+", text.lower()) if len(w) > 3)
+    return {w[:-1] if w.endswith("s") else w for w in words}
+
+
 def copies_rubric(text: str, question: dict, rubric: dict) -> bool:
     """
     True if the feedback states a key idea the student has NOT reached,
     which would give the answer away. Ideas the student already expressed
     may be echoed back.
-    """
-    def words(s: str) -> set:
-        return {w for w in re.findall(r"[a-z0-9]+", s.lower()) if len(w) > 3}
 
-    written = words(text)
+    How it decides: each unreached idea is split into its parts (at
+    semicolons). A part counts as given away when the feedback contains
+    more than COPY_THRESHOLD of its meaningful words. Words from the
+    question itself and from the revisit labels don't count, because good
+    feedback has to use them.
+
+    This is a word-matching check, so it is a safety net, not a guarantee:
+    a rewording with different vocabulary gets through.
+    """
+    expected = _stems(question["text"])
+    for link in question["revisit"]:
+        expected |= _stems(link["label"])
+    written = _stems(text)
     absent = {i["id"] for i in rubric["key_ideas"] if i["status"] == "absent"}
+
     for idea in question["key_ideas"]:
-        idea_words = words(idea["text"])
-        if idea["id"] in absent and idea_words:
-            if len(idea_words & written) / len(idea_words) > COPY_THRESHOLD:
+        if idea["id"] not in absent:
+            continue
+        for part in idea["text"].split(";"):
+            words = _stems(part) - expected
+            # Too few words to judge (one shared word would be 100%).
+            if len(words) >= 3 and len(words & written) / len(words) > COPY_THRESHOLD:
                 return True
     return False
 
