@@ -117,6 +117,7 @@ for number, question in enumerate(questions, start=1):
         state["tyu_drafts"][qid] = draft
 
         rate_side, button_side = st.columns([2, 1])
+        layout.keep(f"tyu_confidence_{qid}", NOT_RATED)
         rating = rate_side.select_slider(
             "How confident are you in this answer? (optional)",
             [NOT_RATED, "1", "2", "3", "4", "5"], key=f"tyu_confidence_{qid}",

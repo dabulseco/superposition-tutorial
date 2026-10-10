@@ -37,8 +37,11 @@ PRESETS = {"left": ("State 0 (100% Left)", (100, 0)),
 PREDICT_ANSWER = "They slide along the chain; the wave stays standing"
 state = st.session_state
 
-state.setdefault("t4_left", 100)
-state.setdefault("t4_right", 0)
+layout.keep("t4_left", 100)
+layout.keep("t4_right", 0)
+layout.keep("t4_freq", 1.5)
+layout.keep("t4_delta", 0)
+layout.keep("t4_real", False)
 
 
 def set_mix(left: int, right: int, preset: str) -> None:
@@ -64,7 +67,7 @@ with controls:
         st.button(label, key=f"t4_preset_{name}", width="stretch",
                   on_click=set_mix, args=(left, right, label))
     frequency = st.slider("Driving Force Frequency (Motor Speed)", 0.5, 4.0,
-                          1.5, step=0.1, key="t4_freq",
+                          step=0.1, key="t4_freq",
                           help="Slow on the left, fast on the right.")
 
     st.subheader(text["mixer_heading"])
@@ -74,7 +77,7 @@ with controls:
     right_pct = st.slider("RIGHT Wave Amplitude", 0, 100, key="t4_right",
                           format="%d%%")
     delta = st.slider("Relative phase δ between the two waves (degrees)",
-                      0, 359, 0, key="t4_delta",
+                      0, 359, key="t4_delta",
                       help="Shifts the right wave relative to the left one. "
                            "At 0 the page behaves like the original primer.")
 
@@ -143,8 +146,9 @@ def motion_summary() -> str:
 
 
 with picture:
-    st.info(status)
-    if not can_travel:
+    if can_travel:
+        st.info(status)
+    else:
         st.warning(
             f"No traveling wave at this frequency. This chain only carries "
             f"waves with frequency between {low:.1f} and {high:.1f}.")
@@ -190,9 +194,15 @@ with picture:
                            outcome=PREDICT_ANSWER, matched=matched)
             state["t4_pending"] = PRESETS["super"][1]
             st.rerun()
-        st.markdown("The mix is now 50/50. **Move the phase slider** and "
-                    "watch the dotted lines.")
-        if matched:
+        if not standing:
+            st.caption("The mix is no longer 50/50. Make the two amplitudes "
+                       "equal again to watch the still points.")
+        else:
+            st.markdown("The mix is now 50/50. **Move the phase slider** "
+                        "and watch the dotted lines.")
+        if not standing:
+            pass
+        elif matched:
             st.success("Your prediction matches: the still points slide "
                        "along the chain, and the wave is still a standing "
                        "wave.")

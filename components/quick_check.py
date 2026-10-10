@@ -31,9 +31,10 @@ def quick_check(page_id: str) -> None:
     for item in items:
         item_id = item["id"]
         with st.container(border=True):
+            layout.keep(f"quick_{item_id}", None)
             choice = st.radio(item["question"],
                               [o["text"] for o in item["options"]],
-                              index=None, key=f"quick_{item_id}")
+                              key=f"quick_{item_id}")
             if st.button("Check", key=f"quick_check_{item_id}"):
                 if choice is None:
                     st.info("Choose an answer first.")

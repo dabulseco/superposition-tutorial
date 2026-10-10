@@ -215,3 +215,83 @@ def test_state_card_with_no_state_says_so():
     at = AppTest.from_function(_card_app).run()
     assert not at.exception
     assert "No state yet" in " ".join(c.value for c in at.caption)
+
+
+# ---- state that must survive leaving a page and coming back -----------------
+
+def _two_page_app():
+    import streamlit as st
+    from components import layout
+    from components.prediction_gate import prediction_gate
+
+    def page_a():
+        st.title("A")
+        layout.keep("a_slider", 50)
+        value = st.slider("s", 0, 100, key="a_slider")
+        gate = prediction_gate("a_gate", (value,))
+        gate.ask_choice("Q?", ["yes", "no"])
+        if gate.run_button("Run"):
+            st.write("RESULT")
+        if st.button("to B", key="to_b"):
+            st.switch_page(pb)
+
+    def page_b():
+        st.title("B")
+        if st.button("to A", key="to_a"):
+            st.switch_page(pa)
+
+    pa = st.Page(page_a, title="A", default=True)
+    pb = st.Page(page_b, title="B")
+    st.navigation([pa, pb]).run()
+
+
+def test_settings_prediction_and_result_survive_a_visit_to_another_page():
+    at = AppTest.from_function(_two_page_app).run()
+    at.slider(key="a_slider").set_value(70).run()
+    at.radio(key="a_gate_prediction").set_value("yes").run()
+    at.button(key="a_gate_run").click().run()
+    at.button(key="to_b").click().run()
+    assert at.title[0].value == "B"
+    at.button(key="to_a").click().run()
+    assert at.title[0].value == "A"
+    assert at.slider(key="a_slider").value == 70
+    assert at.radio(key="a_gate_prediction").value == "yes"
+    assert "RESULT" in _shown(at)
+    assert len(at.warning) == 0
+
+
+def test_prediction_cannot_be_edited_after_the_result_is_shown():
+    at = AppTest.from_function(_gate_app).run()
+    assert not at.radio[0].disabled
+    at.radio[0].set_value("different").run()
+    at.button[0].click().run()
+    assert at.radio[0].disabled
+    at.slider[0].set_value(45).run()          # new settings: predict afresh
+    assert not at.radio[0].disabled
+
+
+def test_number_prediction_is_locked_after_the_result_too():
+    at = AppTest.from_function(_number_gate_app).run()
+    at.number_input[0].set_value(50).run()
+    at.button[0].click().run()
+    assert at.number_input[0].disabled
+
+
+def _reset_gate_app():
+    import streamlit as st
+    from components.prediction_gate import prediction_gate, reset_gate
+    st.button("clear", on_click=reset_gate, args=("r",))
+    gate = prediction_gate("r", ())
+    gate.ask_number("How many?", 0, 100)
+    if gate.run_button("Run"):
+        st.write("RESULT")
+
+
+def test_reset_gate_hides_the_result_and_clears_the_prediction():
+    at = AppTest.from_function(_reset_gate_app).run()
+    at.number_input[0].set_value(50).run()
+    at.button(key="r_run").click().run()
+    assert "RESULT" in _shown(at)
+    at.button[0].click().run()
+    assert "RESULT" not in _shown(at)
+    assert at.number_input[0].value is None and not at.number_input[0].disabled

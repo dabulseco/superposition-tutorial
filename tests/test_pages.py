@@ -512,3 +512,66 @@ def test_quick_check_needs_a_choice_first():
     at.button(key="quick_check_qc-t1-1").click().run()
     assert "Choose an answer first" in texts(at.info)
     assert not [e for e in at.session_state["journey"] if e["type"] == "quick_check"]
+
+
+# ---- results and messages must belong to what is on screen ------------------
+
+def test_t3_message_follows_the_slider_after_a_run():
+    at = run_page("t3")
+    at.number_input(key="t3_predict_prediction").set_value(50).run()
+    at.button(key="t3_predict_run").click().run()
+    at.slider(key="t3_p").set_value(60).run()
+    assert "Ran 100 measurements!" not in all_text(at)
+    assert "Prepared in a 60% UP mix." in texts(at.info)
+
+
+def test_t3_clear_data_also_clears_the_last_run_summary():
+    at = run_page("t3")
+    at.number_input(key="t3_predict_prediction").set_value(50).run()
+    at.button(key="t3_predict_run").click().run()
+    assert "This run:" in all_text(at)
+    at.button(key="t3_clear").click().run()
+    assert "This run:" not in all_text(at)
+    assert "Ran 100 measurements!" not in all_text(at)
+
+
+def test_t3_prediction_cannot_be_changed_to_match_the_result():
+    at = run_page("t3")
+    at.number_input(key="t3_predict_prediction").set_value(0).run()
+    at.button(key="t3_predict_run").click().run()
+    assert at.number_input(key="t3_predict_prediction").disabled
+
+
+def test_t4_5050_message_only_shows_while_the_mix_is_5050():
+    at = run_page("t4")
+    at.radio(key="t4_predict_prediction").set_value(
+        "They slide along the chain; the wave stays standing").run()
+    at.button(key="t4_predict_run").click().run()
+    assert "The mix is now 50/50" in all_text(at)
+    at.slider(key="t4_right").set_value(0).run()
+    assert "The mix is now 50/50" not in all_text(at)
+
+
+def test_t2_prediction_message_notes_when_the_weights_have_moved():
+    at = run_page("t2")
+    at.radio(key="t2_predict_prediction").set_value("Pattern 1 only").run()
+    at.button(key="t2_predict_run").click().run()
+    assert "Right 40 and Center 0" in texts(at.warning)
+    at.slider(key="t2_x2").set_value(30).run()
+    assert "Right 40 and Center 0" not in texts(at.warning)
+    assert "You have moved the weights" in all_text(at)
+
+
+def test_t4_out_of_band_does_not_also_claim_a_standing_wave():
+    at = run_page("t4")
+    at.button(key="t4_preset_super").click().run()
+    at.toggle(key="t4_real").set_value(True).run()
+    at.slider(key="t4_freq").set_value(0.5).run()
+    assert "Standing Wave" not in texts(at.info)
+    assert "No traveling wave at this frequency" in texts(at.warning)
+
+
+def test_no_page_shows_a_streamlit_state_warning_on_first_load():
+    for page_id in ("t1", "t2", "t3", "t3b", "t4", "tyu"):
+        at = run_page(page_id)
+        assert "Session State API" not in texts(at.warning), page_id

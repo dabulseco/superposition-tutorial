@@ -75,6 +75,19 @@ def page_header(page_id: str) -> dict:
     return text
 
 
+def keep(key: str, default):
+    """
+    Call just before drawing a widget that has this key (and draw the
+    widget WITHOUT its own default value).
+
+    Streamlit forgets a widget's value when the student opens another
+    page. Copying the value back into st.session_state on every run turns
+    it into ordinary session data, which is kept, so sliders, choices, and
+    predictions are still there when the student comes back.
+    """
+    st.session_state[key] = st.session_state.get(key, default)
+
+
 def things_to_try(text: dict) -> None:
     """The page's numbered list of experiments to try."""
     items = text.get("things_to_try", [])

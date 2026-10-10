@@ -23,7 +23,7 @@ import streamlit as st
 
 from components import journey, layout, plots
 from components.chat_panel import chat_panel
-from components.prediction_gate import prediction_gate
+from components.prediction_gate import prediction_gate, reset_gate
 from components.quick_check import quick_check
 from components.state_card import state_card
 from components.theme import COLOR_AXIS, COLOR_PURE
@@ -53,7 +53,8 @@ picture, controls = st.columns([1, 1])
 with controls:
     st.subheader(text["prepare_heading"])
     st.markdown(text["prepare_text"])
-    percent_up = st.slider("100% DOWN  ←  →  100% UP", 0, 100, 50, key="t3_p",
+    layout.keep("t3_p", 50)
+    percent_up = st.slider("100% DOWN  ←  →  100% UP", 0, 100, key="t3_p",
                            format="%d%% UP")
     p_up = percent_up / 100
     st.markdown(f"**{percent_up}% UP / {100 - percent_up}% DOWN**")
@@ -65,6 +66,7 @@ with controls:
         state["t3_prepared"] = percent_up
         state["t3_snapped"] = None
         state["t3_outcomes"] = []
+        state["t3_message"] = None
 
     # ---------------- Measure ----------------
     st.subheader(text["experiment_heading"])
@@ -89,6 +91,7 @@ with controls:
         state["t3_outcomes"] = []
         state["t3_snapped"] = None
         state["t3_message"] = None
+        reset_gate("t3_predict")     # the last run's summary goes too
 
     st.button("Measure 1x", key="t3_measure1", on_click=measure_once)
 

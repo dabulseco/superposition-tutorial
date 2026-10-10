@@ -33,8 +33,9 @@ class PredictionGate:
         self.key = key
         self.signature = signature
         self.prediction = None      # the student's prediction, or None
-        self.just_ran = False       # True only on the run right after a click
         state = st.session_state
+        # True only on the redraw right after the run button was clicked.
+        self.just_ran = state.pop(f"{key}_just_ran", False)
 
         # Settings changed since the last run: hide the result and clear the
         # prediction. This must happen before the prediction widget is drawn.
@@ -56,17 +57,22 @@ class PredictionGate:
     def ask_choice(self, question: str, options: list[str]):
         """Ask a multiple-choice prediction. Returns the choice, or None."""
         self._relock_notice()
+        _keep(f"{self.key}_prediction", NO_CHOICE)
+        # Once the result is showing, the prediction is fixed: otherwise it
+        # could be edited afterwards to "match".
         choice = st.radio(question, [NO_CHOICE] + list(options),
-                          key=f"{self.key}_prediction")
+                          key=f"{self.key}_prediction", disabled=self.ran)
         self.prediction = None if choice == NO_CHOICE else choice
         return self.prediction
 
     def ask_number(self, question: str, low: int, high: int):
         """Ask for a whole-number prediction. Returns the number, or None."""
         self._relock_notice()
+        _keep(f"{self.key}_prediction", None)
         self.prediction = st.number_input(
-            question, min_value=low, max_value=high, value=None, step=1,
-            placeholder="Type a number", key=f"{self.key}_prediction")
+            question, min_value=low, max_value=high, step=1,
+            placeholder="Type a number", key=f"{self.key}_prediction",
+            disabled=self.ran)
         return self.prediction
 
     def run_button(self, label: str) -> bool:
@@ -77,11 +83,30 @@ class PredictionGate:
         if self.prediction is None:
             st.info("Make a prediction to unlock the experiment.")
             return False
-        if st.button(label, type="primary", key=f"{self.key}_run"):
-            st.session_state[f"{self.key}_ran_for"] = self.signature
-            st.session_state[f"{self.key}_relocked"] = False
-            self.just_ran = True
+        st.button(label, type="primary", key=f"{self.key}_run",
+                  on_click=self._mark_run)
         return self.ran
+
+    def _mark_run(self) -> None:
+        """
+        Runs when the button is clicked, BEFORE the page is redrawn, so the
+        prediction is already locked when it is drawn next to the result.
+        """
+        st.session_state[f"{self.key}_ran_for"] = self.signature
+        st.session_state[f"{self.key}_relocked"] = False
+        st.session_state[f"{self.key}_just_ran"] = True
+
+
+def _keep(key: str, default) -> None:
+    """Keep a widget's value across visits to other pages (see layout.keep)."""
+    st.session_state[key] = st.session_state.get(key, default)
+
+
+def reset_gate(key: str) -> None:
+    """Forget the run and the prediction (for a page's "clear" button)."""
+    st.session_state[f"{key}_ran_for"] = None
+    st.session_state[f"{key}_relocked"] = False
+    st.session_state.pop(f"{key}_prediction", None)
 
 
 def prediction_gate(key: str, signature: tuple) -> PredictionGate:

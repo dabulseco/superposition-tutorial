@@ -51,8 +51,8 @@ with bit_side:
     st.subheader(text["classical_heading"])
     st.markdown(text["classical_text"])
 
-    switch_on = st.toggle("Flip the switch to toggle:", value=True,
-                          key="t1_switch_on")
+    layout.keep("t1_switch_on", True)
+    switch_on = st.toggle("Flip the switch to toggle:", key="t1_switch_on")
     switch = "ON" if switch_on else "OFF"
     st.markdown(f"## 💡 {switch}" if switch_on else f"## ⚫ {switch}")
 

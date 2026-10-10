@@ -37,8 +37,9 @@ PREDICT_SETUP = (40, 0)      # weight 1 at Right 40, weight 2 at center
 PREDICT_ANSWER = "Both, in equal amounts"
 state = st.session_state
 
-state.setdefault("t2_x1", 40)
-state.setdefault("t2_x2", 40)
+layout.keep("t2_x1", 40)
+layout.keep("t2_x2", 40)
+layout.keep("t2_kc", osc.DEFAULT_KC)
 state.setdefault("t2_seed", random.randrange(1_000_000))
 
 
@@ -84,7 +85,7 @@ with controls:
     st.caption(text["presets_note"])
 
     with st.expander("Go deeper: change the middle spring"):
-        k_c = st.slider("Coupling spring stiffness", 0.5, 5.0, osc.DEFAULT_KC,
+        k_c = st.slider("Coupling spring stiffness", 0.5, 5.0,
                         step=0.125, key="t2_kc",
                         help="How stiff the spring between the two weights "
                              "is. 2.625 is the primer's original value.")
@@ -148,7 +149,11 @@ with picture:
                            outcome=PREDICT_ANSWER, matched=matched)
             state["t2_pending"] = PREDICT_SETUP
             st.rerun()
-        if matched:
+        if (x1_0, x2_0) != PREDICT_SETUP:
+            st.caption("You have moved the weights since trying this. Set "
+                       "weight 1 to Right 40 and weight 2 to Center 0 to "
+                       "see it again.")
+        elif matched:
             st.success("Your prediction matches: pulling one weight starts "
                        "both patterns in equal amounts (20 and 20).")
         else:

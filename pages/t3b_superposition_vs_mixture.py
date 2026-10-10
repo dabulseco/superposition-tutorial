@@ -37,29 +37,36 @@ controls, picture, experiment = st.columns([0.8, 1.1, 1])
 # ---------------- Controls ----------------
 with controls:
     st.subheader("1. Build the state")
-    theta = st.slider("Balance θ between |0⟩ and |1⟩ (degrees)", 0, 180, 90,
+    layout.keep("t3b_theta", 90)
+    theta = st.slider("Balance θ between |0⟩ and |1⟩ (degrees)", 0, 180,
                       key="t3b_theta",
                       help="0 = all |0⟩, 90 = equal parts, 180 = all |1⟩")
-    phi = st.slider("Relative phase φ (degrees)", 0, 359, 0, key="t3b_phi",
+    layout.keep("t3b_phi", 0)
+    phi = st.slider("Relative phase φ (degrees)", 0, 359, key="t3b_phi",
                     help="Only the superposition has a phase. "
                          "The mixture ignores this slider.")
 
     st.subheader("2. Choose the measurement axis")
+    layout.keep("t3b_axis", "Along z")
     axis_name = st.radio("Quick choice", list(AXES) + ["Custom"],
                          horizontal=True, key="t3b_axis")
     if axis_name == "Custom":
-        m_polar = st.slider("Axis tilt from +z (degrees)", 0, 180, 90,
+        layout.keep("t3b_polar", 90)
+        m_polar = st.slider("Axis tilt from +z (degrees)", 0, 180,
                             key="t3b_polar")
-        m_azim = st.slider("Axis rotation around z (degrees)", 0, 359, 0,
+        layout.keep("t3b_azim", 0)
+        m_azim = st.slider("Axis rotation around z (degrees)", 0, 359,
                            key="t3b_azim")
     else:
         m_polar, m_azim = AXES[axis_name]
 
     st.subheader("3. Experiment settings")
+    layout.keep("t3b_shots", 1000)
     n_shots = st.select_slider("Shots per state", [10, 100, 1000, 10000],
-                               value=1000, key="t3b_shots")
-    seed = st.number_input("Random seed (change to rerun)", 0, 9999, 1,
-                           key="t3b_seed")
+                               key="t3b_shots")
+    layout.keep("t3b_seed", 1)
+    seed = st.number_input("Random seed (change to rerun)", min_value=0,
+                           max_value=9999, step=1, key="t3b_seed")
 
 # ---------------- Physics for the current settings ----------------
 r_pure = mixture.bloch_vector_pure(theta, phi)
