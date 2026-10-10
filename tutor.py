@@ -5,9 +5,9 @@ tutor.py — the "Ask the tutor" feature, powered by an Ollama language model
 This file works in two modes, chosen automatically:
 
   LOCAL   Talks to Ollama running on the same computer
-          (http://localhost:11434 by default). Every installed model is
-          offered. Models whose names end in "cloud" are forwarded by
-          Ollama to its servers; all others stay on this computer.
+          (http://localhost:11434 by default). Models whose names end in
+          "cloud" are forwarded by Ollama to its servers; all others
+          stay on this computer.
 
   HOSTED  Talks to Ollama's cloud service at https://ollama.com, so the app
           can run on a web host that has no Ollama of its own. Questions
@@ -61,8 +61,9 @@ Each can be an environment variable or a line in .streamlit/secrets.toml
     OLLAMA_API_KEY        your key from https://ollama.com/settings/keys
     APP_PASSWORD          students must type this before they can use the
                           tutor (asked only when HOSTED)
-    OLLAMA_MODELS         optional, comma-separated: offer only these models
-                          when HOSTED, e.g. "gemma4:31b, gpt-oss:120b"
+    OLLAMA_MODELS         optional, comma-separated: the models the sidebar
+                          offers (default "gemma4:31b, deepseek-v4.1-flash").
+                          Use "all" to offer every model.
     OLLAMA_DEFAULT_MODEL  optional: the model selected when the page opens
     OLLAMA_MODE           optional: "hosted" or "local" to force a mode,
                           e.g. to try HOSTED on a laptop that runs Ollama
@@ -99,6 +100,11 @@ CLOUD_URL = "https://ollama.com"
 # The model selected when the page opens, if it is available. Locally this
 # is the cloud-served Gemma that Ollama forwards to its servers; online it
 # is the same model under its cloud name. Change with OLLAMA_DEFAULT_MODEL.
+# The models offered in the sidebar. Give the plain cloud name: a local
+# Ollama lists the same model as "<name>-cloud" or "<name>:cloud", and that
+# is matched too.
+OFFERED_MODELS = ["gemma4:31b", "deepseek-v4.1-flash"]
+
 DEFAULT_LOCAL_MODEL = "gemma4:31b-cloud"
 DEFAULT_HOSTED_MODEL = "gemma4:31b"
 
@@ -154,10 +160,10 @@ def load_settings() -> None:
     # the app is HOSTED. It is not asked for on your own computer.
     APP_PASSWORD = setting("APP_PASSWORD")
 
-    # Optional: narrow the list offered in HOSTED mode to these models, in
-    # this order. Left unset, every model the cloud service lists is offered.
-    HOSTED_MODELS = [m.strip() for m in setting("OLLAMA_MODELS").split(",")
-                     if m.strip()]
+    # The models the sidebar offers, in this order (the same in both
+    # modes). Change with OLLAMA_MODELS; "all" offers every model.
+    HOSTED_MODELS = [m.strip() for m in setting(
+        "OLLAMA_MODELS", ", ".join(OFFERED_MODELS)).split(",") if m.strip()]
 
     DEFAULT_MODEL = setting(
         "OLLAMA_DEFAULT_MODEL",
@@ -241,12 +247,19 @@ def list_models() -> list[str]:
     # Ollama on a laptop can also list "cloud" models, which it forwards to
     # Ollama's servers. Remember them so the app can say where text goes.
     REMOTE_MODELS.update(m["name"] for m in listed if m.get("remote_host"))
-    if HOSTED and HOSTED_MODELS:
-        # The instructor narrowed the list (OLLAMA_MODELS). If none of
-        # those exist any more, fall back to everything the service offers.
-        chosen = [m for m in HOSTED_MODELS if m in available]
-        return chosen or available
-    return available
+    if [m.lower() for m in HOSTED_MODELS] == ["all"]:
+        return available
+
+    # Offer only the chosen models, in the chosen order. A local Ollama
+    # names a cloud model "<name>-cloud" or "<name>:cloud", so those count
+    # as the same model. If none of the chosen models exist here, offer
+    # everything rather than leave the tutor with nothing to pick.
+    chosen = []
+    for wanted in HOSTED_MODELS:
+        for name in (wanted, f"{wanted}-cloud", f"{wanted}:cloud"):
+            if name in available and name not in chosen:
+                chosen.append(name)
+    return chosen or available
 
 
 # -----------------------------------------------------------------------------

@@ -38,9 +38,12 @@ The app opens at http://localhost:8501.
 
 For the tutor and the feedback, install [Ollama](https://ollama.com), pull a
 chat model (for example `ollama pull llama3.2`), and keep Ollama running.
-Pick a model in the sidebar under "Tutor". The list is every model in
-`ollama list`. `gemma4:31b-cloud` is selected by default if you have it
-(otherwise the top model). Models whose names end in `cloud` run
+The sidebar offers two models, `gemma4:31b-cloud` (selected by default) and
+`deepseek-v4.1-flash:cloud`, if you have them. Add them with
+`ollama pull gemma4:31b-cloud` and `ollama pull deepseek-v4.1-flash:cloud`.
+If you have neither, every installed model is offered instead. To offer
+other models, set `OLLAMA_MODELS` (see "Host it online"), or change
+`OFFERED_MODELS` in `tutor.py`. Models whose names end in `cloud` run
 on Ollama's servers even here; the page warns students when one is picked. Without Ollama every simulation
 still works; the chat and feedback say they are off.
 
@@ -166,10 +169,11 @@ Everyone can use the simulations. The tutor and the feedback ask for the
 class password first, so strangers who find the link can't spend your
 quota. Leave `APP_PASSWORD` out and they are open to anyone with the link.
 
-When hosted, the sidebar offers every model Ollama's cloud lists, with
-`gemma4:31b` selected by default. Optional settings:
+When hosted, the sidebar offers `gemma4:31b` (selected by default) and
+`deepseek-v4.1-flash`. Optional settings:
 
-- `OLLAMA_MODELS = "gemma4:31b, gpt-oss:120b"` offers only these models.
+- `OLLAMA_MODELS = "gemma4:31b, gpt-oss:120b"` offers these models instead.
+  `OLLAMA_MODELS = "all"` offers every model.
 - `OLLAMA_DEFAULT_MODEL = "gpt-oss:120b"` changes the default.
 
 On a laptop that runs Ollama, the app uses your local Ollama even when a

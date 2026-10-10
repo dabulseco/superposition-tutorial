@@ -38,10 +38,9 @@ def _models(url: str, hosted: bool, offered: tuple) -> tuple:
 def model_picker():
     """
     Sidebar dropdown of Ollama models.
-    Local: every installed model. Hosted: every model the cloud service
-    lists (or only those named in OLLAMA_MODELS). The model selected at
-    first is tutor.default_model(): gemma4:31b-cloud locally, gemma4:31b
-    when hosted, or the top of the list if that model isn't there.
+    Offers the models in tutor.OFFERED_MODELS (or OLLAMA_MODELS), in both
+    modes. The model selected at first is tutor.default_model():
+    gemma4:31b-cloud locally, gemma4:31b when hosted.
 
     The choice is remembered in st.session_state so every page's chat (and
     the feedback on Test Your Understanding) uses the same model.
@@ -71,8 +70,7 @@ def model_picker():
             model = st.selectbox("Model (installed in Ollama)", models,
                                  index=models.index(tutor.default_model(models)),
                                  key="tutor_model_choice",
-                                 help="Listed in the same order as `ollama "
-                                      "list`. Names ending in \"cloud\" run on "
+                                 help="Names ending in \"cloud\" run on "
                                       "Ollama's servers.")
 
         if tutor.HOSTED:

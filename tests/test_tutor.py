@@ -242,19 +242,45 @@ def test_hosted_mode_can_be_forced_for_a_trial_run_on_a_laptop(monkeypatch):
     assert tutor.HOSTED and tutor.OLLAMA_URL == "https://ollama.com"
 
 
-def test_hosted_offers_the_whole_cloud_catalogue_by_default(ollama, monkeypatch):
-    monkeypatch.setenv("OLLAMA_API_KEY", "k")
-    tutor.load_settings()
-    ollama.models = ["a", "gemma4:31b", "b", "c"]
-    assert tutor.list_models() == ["a", "gemma4:31b", "b", "c"]
+CLOUD_LIST = ["deepseek-v4.1-flash", "gemma4:31b", "gpt-oss:120b", "kimi-k3"]
+LOCAL_LIST = ["gemma4:26b", "gemma4:31b-cloud", "deepseek-v4.1-flash:cloud",
+              "gemma4:31b-mlx", "nomic-embed-text:latest", "gpt-oss:20b"]
 
 
-def test_hosted_list_can_still_be_narrowed_with_a_setting(ollama, monkeypatch):
+def test_hosted_offers_only_the_two_chosen_models_by_default(ollama, monkeypatch):
     monkeypatch.setenv("OLLAMA_API_KEY", "k")
-    monkeypatch.setenv("OLLAMA_MODELS", "c, a")
     tutor.load_settings()
-    ollama.models = ["a", "gemma4:31b", "b", "c"]
-    assert tutor.list_models() == ["c", "a"]
+    ollama.models = CLOUD_LIST
+    assert tutor.list_models() == ["gemma4:31b", "deepseek-v4.1-flash"]
+
+
+def test_local_offers_the_same_two_models_under_their_cloud_names(ollama):
+    ollama.models = LOCAL_LIST
+    assert tutor.list_models() == ["gemma4:31b-cloud", "deepseek-v4.1-flash:cloud"]
+
+
+def test_a_local_copy_with_another_suffix_is_not_mistaken_for_the_cloud_model(ollama):
+    ollama.models = ["gemma4:31b-mlx", "gemma4:31b-cloud"]
+    assert tutor.list_models() == ["gemma4:31b-cloud"]
+
+
+def test_the_offered_models_can_be_changed_with_a_setting(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_MODELS", "gpt-oss:20b, gemma4:26b")
+    tutor.load_settings()
+    ollama.models = LOCAL_LIST
+    assert tutor.list_models() == ["gpt-oss:20b", "gemma4:26b"]
+
+
+def test_setting_all_offers_every_model(ollama, monkeypatch):
+    monkeypatch.setenv("OLLAMA_MODELS", "all")
+    tutor.load_settings()
+    ollama.models = LOCAL_LIST
+    assert tutor.list_models() == LOCAL_LIST
+
+
+def test_if_none_of_the_chosen_models_exist_every_model_is_offered(ollama):
+    ollama.models = ["model-newest", "model-older"]
+    assert tutor.list_models() == ["model-newest", "model-older"]
 
 
 def test_default_model_is_gemma4_31b_cloud_locally():

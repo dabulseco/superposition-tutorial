@@ -395,13 +395,14 @@ def test_chain_weights_never_cross_even_for_short_wavelengths():
     assert plots_waves.chain_scale(gentle) == plots_waves.CHAIN_SCALE
 
 
-def test_picker_lists_every_model_and_defaults_to_gemma4_31b_cloud(ollama):
+def test_picker_offers_only_the_two_chosen_models_gemma_first(ollama):
     ollama.models = ["gemma4:26b", "nomic-embed-text:latest",
+                     {"name": "deepseek-v4.1-flash:cloud", "remote_host": "https://ollama.com"},
                      {"name": "gemma4:31b-cloud", "remote_host": "https://ollama.com"},
                      "gpt-oss:20b"]
     at = AppTest.from_function(_chat_app).run()
-    assert at.selectbox[0].options == ["gemma4:26b", "nomic-embed-text:latest",
-                                       "gemma4:31b-cloud", "gpt-oss:20b"]
+    assert at.selectbox[0].options == ["gemma4:31b-cloud",
+                                       "deepseek-v4.1-flash:cloud"]
     assert at.selectbox[0].value == "gemma4:31b-cloud"
     assert "sent to Ollama's cloud service" in _captions(at)
 
