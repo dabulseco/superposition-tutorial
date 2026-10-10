@@ -185,3 +185,26 @@ def test_prompt_can_draw_on_other_pages_notes(tmp_path):
         make_context(page_id="tyu", notes_pages=["t4", "t1", "t4"]),
         notes_dir=tmp_path)
     assert prompt.count("PHIBIT-NOTE") == 1 and "COIN-NOTE" in prompt
+
+
+def test_page_rules_are_marked_as_taking_priority():
+    with_rules = tutor.build_system_prompt(
+        make_context(extra_rules=["Do not reveal the node answer."]))
+    heading = "RULES FOR THIS PAGE (these take priority over everything above)"
+    assert heading in with_rules
+    assert with_rules.index(heading) < with_rules.index("Do not reveal the node answer.")
+    # They come last, after the notes, so they are the final word.
+    assert with_rules.index("REFERENCE NOTES") < with_rules.index(heading)
+    assert heading not in tutor.build_system_prompt(make_context())
+
+
+def test_pending_prediction_rule_names_the_question_and_forbids_the_answer():
+    rule = tutor.pending_prediction_rule("what happens to the still points")
+    assert "what happens to the still points" in rule
+    assert "do NOT state" in rule and "prediction" in rule
+
+
+def test_normalize_math_turns_bracket_math_into_dollar_math():
+    assert tutor.normalize_math(r"So \(u = 2a\) and \[x = 1\] ok") == \
+        "So $u = 2a$ and $$x = 1$$ ok"
+    assert tutor.normalize_math("plain $x$ text") == "plain $x$ text"

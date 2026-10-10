@@ -21,6 +21,8 @@ import random
 import numpy as np
 import streamlit as st
 
+import tutor
+
 from components import journey, layout, plots_waves
 from components.chat_panel import chat_panel
 from components.prediction_gate import prediction_gate
@@ -197,11 +199,9 @@ def tutor_context() -> dict:
     """What the tutor is told about this page right now."""
     rules = []
     if not gate.ran:
-        rules.append(
-            "The student has not yet answered this page's prediction "
-            "question (weight 1 at Right 40, weight 2 at center). Do not "
-            "tell them which patterns light up for that case; help them "
-            "reason it out.")
+        rules.append(tutor.pending_prediction_rule(
+            "which patterns light up with weight 1 at Right 40 and weight 2 "
+            "at center"))
     return {
         "page_id": PAGE_ID,
         "page_title": text["title"],

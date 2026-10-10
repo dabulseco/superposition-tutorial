@@ -190,6 +190,7 @@ def chat_panel(context: dict, starter_questions=(), seed_message: str | None = N
                 chat.pop()   # drop the unanswered question
                 return
 
+        answer = tutor.normalize_math(answer)
         chat.append({"role": "assistant", "content": answer, "model": model,
                      "suggestions": suggestions})
         journey.record("chat_question", context["page_id"],

@@ -20,6 +20,8 @@ The physics is in physics/phibit.py.
 import numpy as np
 import streamlit as st
 
+import tutor
+
 from components import journey, layout, plots_waves
 from components.chat_panel import chat_panel
 from components.prediction_gate import prediction_gate
@@ -224,11 +226,9 @@ def tutor_context() -> dict:
     """What the tutor is told about this page right now."""
     rules = []
     if not gate.ran:
-        rules.append(
-            "The student has not yet answered this page's prediction "
-            "question (what happens to the still points when the phase "
-            "changes at a 50/50 mix). Do not tell them the answer; help "
-            "them reason it out.")
+        rules.append(tutor.pending_prediction_rule(
+            "what happens to the still points when the phase changes at a "
+            "50/50 mix"))
     results = [f"Status box: {status}"]
     if share is not None:
         results.append(f"Share of State 1 = {share:.2f}")

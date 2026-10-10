@@ -189,6 +189,31 @@ def load_notes(page_id: str, notes_dir: Path | None = None) -> str:
     return "\n\n".join(parts)
 
 
+def pending_prediction_rule(what: str) -> str:
+    """
+    A page rule for while the student still owes a prediction. `what`
+    describes the question, e.g. "which patterns light up when ...".
+    """
+    return (
+        f"PREDICTION PENDING. The page asks the student to predict {what}, "
+        "and they have not done it yet. If they ask about it, do NOT state, "
+        "confirm, or describe the outcome, not even in general terms, and "
+        "do not quote a formula from the notes that settles it. Give one "
+        "hint about what to think about, ask what they predict and why, "
+        "and tell them to choose a prediction on the page to see for "
+        "themselves.")
+
+
+def normalize_math(text: str) -> str:
+    """
+    Some models write math as \\( ... \\) or \\[ ... \\] even when asked for
+    $...$. Streamlit only draws the dollar form, so convert.
+    """
+    for bracket, dollars in ((r"\(", "$"), (r"\)", "$"), (r"\[", "$$"), (r"\]", "$$")):
+        text = text.replace(bracket, dollars)
+    return text
+
+
 def _page_notes(page_id: str, notes_dir: Path | None = None) -> str:
     """One page's own notes, without the shared ones ("" if none)."""
     path = (NOTES_DIR if notes_dir is None else Path(notes_dir)) / f"{page_id}.md"
@@ -226,7 +251,13 @@ def build_system_prompt(context: dict, notes_dir: Path | None = None) -> str:
             "toward a prediction instead."
         )
 
-    extra_rules = "\n".join(context.get("extra_rules", []))
+    # Rules special to this page go last and are labeled as overriding, so
+    # a model doesn't let the general "explain it" rules win.
+    extra_rules = ""
+    if context.get("extra_rules"):
+        extra_rules = (
+            "\n\nRULES FOR THIS PAGE (these take priority over everything above)\n"
+            + "\n".join(f"- {rule}" for rule in context["extra_rules"]))
 
     # Usually a page uses its own notes. A page can ask for other pages'
     # notes instead (Test Your Understanding draws on the topic pages).
@@ -288,14 +319,13 @@ the student has not seen yet. Do not mention this block in your reply.
   the numbers given below or ones you compute from the formulas in the notes.
 
 {reveal_rule}
-{extra_rules}
 
 CURRENT SETTINGS ON THE PAGE
 {settings}
 {numbers}
 
 REFERENCE NOTES
-{notes}"""
+{notes}{extra_rules}"""
 
 
 # -----------------------------------------------------------------------------
