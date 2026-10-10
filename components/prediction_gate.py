@@ -87,6 +87,16 @@ class PredictionGate:
                   on_click=self._mark_run)
         return self.ran
 
+    def new_prediction_button(self, label: str = "Make a new prediction") -> None:
+        """
+        Draw a button that unlocks the prediction again. For experiments
+        with no setting to change, where nothing else would unlock it.
+        Shown only while a result is on screen.
+        """
+        if self.ran:
+            st.button(label, key=f"{self.key}_again", on_click=reset_gate,
+                      args=(self.key,))
+
     def _mark_run(self) -> None:
         """
         Runs when the button is clicked, BEFORE the page is redrawn, so the

@@ -88,6 +88,8 @@ with bit_side:
             journey.record("measure_bit_10", PAGE_ID, switch=switch,
                            prediction=bit_gate.prediction, times_on=times_on,
                            matched=matched)
+        st.caption("Your prediction is locked while this result is showing.")
+        bit_gate.new_prediction_button()
 
 # ---------------- The spinning coin ----------------
 with coin_side:
@@ -137,6 +139,9 @@ with coin_side:
             f"predicted {coin_gate.prediction}, so you were off by "
             f"{abs(heads - coin_gate.prediction)}. Press the button again: "
             f"do you get the same number?")
+        st.caption("Your prediction is locked while this result is showing.")
+        # The coin has no setting to change, so nothing else would unlock it.
+        coin_gate.new_prediction_button()
 
 # ---------------- Explain ----------------
 st.divider()

@@ -633,3 +633,26 @@ def test_t1_clear_tally_lets_the_student_make_a_new_coin_prediction():
     assert at.session_state["t1_tally"] == [0, 0]
     assert not at.number_input(key="t1_coin100_prediction").disabled
     assert at.number_input(key="t1_coin100_prediction").value is None
+
+
+def test_t1_coin_prediction_can_be_made_again_without_clearing_the_tally():
+    at = run_page("t1")
+    at.number_input(key="t1_coin100_prediction").set_value(50).run()
+    at.button(key="t1_coin100_run").click().run()
+    assert at.number_input(key="t1_coin100_prediction").disabled
+    at.button(key="t1_coin100_again").click().run()
+    assert not at.number_input(key="t1_coin100_prediction").disabled
+    assert at.number_input(key="t1_coin100_prediction").value is None
+    assert sum(at.session_state["t1_tally"]) == 100     # the tally is kept
+    at.number_input(key="t1_coin100_prediction").set_value(40).run()
+    at.button(key="t1_coin100_run").click().run()
+    assert sum(at.session_state["t1_tally"]) == 200
+
+
+def test_t1_switch_prediction_can_be_made_again_without_flipping_the_switch():
+    at = run_page("t1")
+    at.number_input(key="t1_switch10_prediction").set_value(10).run()
+    at.button(key="t1_switch10_run").click().run()
+    assert at.number_input(key="t1_switch10_prediction").disabled
+    at.button(key="t1_switch10_again").click().run()
+    assert not at.number_input(key="t1_switch10_prediction").disabled
