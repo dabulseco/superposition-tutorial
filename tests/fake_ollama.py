@@ -22,6 +22,7 @@ class FakeOllama:
         self.stream_pieces = ["Hello ", "there."]   # streamed answer
         self.replies = []           # queued answers for non-streamed calls
         self.requests = []          # every chat request body received
+        self.tag_requests = 0       # how many times the model list was asked for
         self._server = None
 
     @property
@@ -44,7 +45,12 @@ class FakeOllama:
                 self.wfile.write(data)
 
             def do_GET(self):
-                self._json(200, {"models": [{"name": m} for m in fake.models]})
+                fake.tag_requests += 1
+                # A model may be a plain name, or a dict to add details
+                # such as "remote_host" (a model that runs in the cloud).
+                self._json(200, {"models": [
+                    m if isinstance(m, dict) else {"name": m}
+                    for m in fake.models]})
 
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))

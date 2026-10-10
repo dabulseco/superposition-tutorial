@@ -42,12 +42,14 @@ TOPIC_PAGES = ("t1", "t2", "t3", "t3b", "t4")
 
 
 def _matched(details: dict):
-    """Did a prediction come true? None if this event has no prediction."""
-    if details.get("prediction") is None:
+    """
+    Did an either/or prediction come true? None if this event has no such
+    prediction. "About how many?" predictions are not scored: a guess of
+    50 that meets 48 heads is a good prediction, not a miss.
+    """
+    if details.get("prediction") is None or "matched" not in details:
         return None
-    if "matched" in details:
-        return bool(details["matched"])
-    return details.get("off_by") == 0
+    return bool(details["matched"])
 
 
 def summary(events: list[dict]) -> dict:
@@ -69,6 +71,7 @@ def describe(event: dict, page_names: dict) -> str:
     d = event["details"]
     kind = event["type"]
     verdict = {True: "matched", False: "did not match", None: ""}[_matched(d)]
+    off_by = d.get("off_by")
 
     if kind == "page_visit":
         return "Opened this page"

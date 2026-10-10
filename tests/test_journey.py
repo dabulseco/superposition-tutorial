@@ -61,8 +61,15 @@ def test_html_escapes_what_the_student_typed():
 
 def test_summary_counts_predictions_and_matches():
     summary = journey.summary(EVENTS)
-    assert summary == {"topics": 1, "predictions": 2, "matched": 0,
+    # Only either/or predictions are tallied. A count prediction ("about
+    # how many heads?") has no single right answer, so it isn't scored.
+    assert summary == {"topics": 1, "predictions": 1, "matched": 0,
                        "answers": 1, "questions": 1}
+
+
+def test_repeated_count_predictions_do_not_count_as_misses():
+    coin = EVENTS[1]
+    assert journey.summary([coin, coin, coin])["predictions"] == 0
 
 
 def test_empty_journey_downloads_do_not_break():
@@ -89,7 +96,7 @@ def test_my_journey_page_shows_the_timeline_and_downloads():
     assert labels == ["Download as HTML", "Download as Markdown"]
     values = {m.label: m.value for m in at.metric}
     assert values["Answers submitted"] == "1"
-    assert values["Predictions that matched"] == "0 of 2"
+    assert values["Either/or predictions that matched"] == "0 of 1"
 
 
 # ---- nothing is written to disk unless asked --------------------------------

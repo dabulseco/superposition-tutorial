@@ -43,6 +43,10 @@ ATTRIBUTION = (
     "Intelligence**."
 )
 STORAGE_NOTE_LOCAL = "Demonstration version: nothing you type is stored by this app."
+STORAGE_NOTE_LOGGING = (
+    "Tutor questions and answers are being saved to a log file on this "
+    "computer, because the box in the sidebar is ticked."
+)
 STORAGE_NOTE_HOSTED = (
     "Demonstration version: questions and answers are sent to Ollama's cloud "
     "service to be answered and are not stored by this app."
@@ -127,22 +131,31 @@ def prev_next(page_id: str) -> None:
             go_to(after)
 
 
-def progress_sidebar() -> None:
-    """Sidebar list of which topics were visited and questions answered."""
+def progress_sidebar(slot, question_count: int = 3) -> None:
+    """
+    List which topics were visited and how many questions were answered.
+    `slot` is a sidebar placeholder made before the page ran; filling it
+    afterwards means the list already includes what the student just did.
+    """
     visited = {e["page"] for e in journey.events() if e["type"] == "page_visit"}
     answered = {e["details"].get("question_id") for e in journey.events()
                 if e["type"] == "tyu_submit"}
-    with st.sidebar:
+    with slot:
         st.subheader("Progress")
         lines = [f"{'✅' if page_id in visited else '⬜'} {PAGE_NAMES[page_id]}"
                  for page_id in ("t1", "t2", "t3", "t3b", "t4")]
-        lines.append(f"{'✅' if len(answered) >= 3 else '⬜'} "
-                     f"Questions answered: {len(answered)} of 3")
+        lines.append(f"{'✅' if len(answered) >= question_count else '⬜'} "
+                     f"Questions answered: {len(answered)} of {question_count}")
         st.markdown("  \n".join(lines))
 
 
 def footer() -> None:
     """The attribution line at the bottom of every page."""
-    note = STORAGE_NOTE_HOSTED if tutor.HOSTED else STORAGE_NOTE_LOCAL
+    if tutor.leaves_this_computer(st.session_state.get("tutor_model")):
+        note = STORAGE_NOTE_HOSTED
+    elif st.session_state.get("save_log"):
+        note = STORAGE_NOTE_LOGGING
+    else:
+        note = STORAGE_NOTE_LOCAL
     st.divider()
     st.caption(f"{ATTRIBUTION} {note}")

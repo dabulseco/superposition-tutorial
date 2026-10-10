@@ -575,3 +575,49 @@ def test_no_page_shows_a_streamlit_state_warning_on_first_load():
     for page_id in ("t1", "t2", "t3", "t3b", "t4", "tyu"):
         at = run_page(page_id)
         assert "Session State API" not in texts(at.warning), page_id
+
+
+# ---- moving between pages inside the real app -------------------------------
+
+def test_opening_a_topic_from_home_ticks_it_off_at_once_and_keeps_the_footer():
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    assert "⬜ 1 · Bits & Superposition" in texts(at.sidebar.markdown)
+    at.button(key="home_t1").click().run()
+    assert at.title[0].value == "Bits vs. Superposition"
+    assert "✅ 1 · Bits & Superposition" in texts(at.sidebar.markdown)
+    assert "Spelman College" in at.caption[-1].value
+
+
+def test_footer_says_so_when_the_local_log_is_switched_on(ollama):
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    assert "nothing you type is stored" in at.caption[-1].value
+    at.sidebar.checkbox[0].check().run()
+    assert "nothing you type is stored" not in at.caption[-1].value
+    assert "saved to a log file on this computer" in at.caption[-1].value
+
+
+def test_footer_warns_when_a_cloud_model_is_picked_locally(ollama):
+    ollama.models = ["local-model",
+                     {"name": "big-model:cloud", "remote_host": "https://ollama.com"}]
+    at = AppTest.from_file(APP, default_timeout=30).run()
+    at.sidebar.selectbox[0].set_value("big-model:cloud").run()
+    assert "sent to Ollama's cloud service" in at.caption[-1].value
+
+
+def test_tyu_gives_no_feedback_until_the_class_password_is_given(ollama, monkeypatch):
+    monkeypatch.setenv("APP_PASSWORD", "open-sesame")
+    tutor.load_settings()
+    at = submit(tyu(), "q1", MY_ANSWER)
+    assert at.session_state["tyu_attempts"]["q1"][0]["feedback"] is None
+    assert ollama.requests == []
+
+
+def test_quick_check_feedback_stays_while_the_student_tries_the_page():
+    at = run_page("t1")
+    at.radio(key="quick_qc-t1-1").set_value("50% heads").run()
+    at.button(key="quick_check_qc-t1-1").click().run()
+    assert "Not quite" in texts(at.warning)
+    at.toggle(key="t1_switch_on").set_value(False).run()     # go and try it
+    assert "Not quite" in texts(at.warning)
+    at.radio(key="quick_qc-t1-1").set_value("undefined until someone looks").run()
+    assert "Not quite" not in texts(at.warning)     # a new choice needs a new check

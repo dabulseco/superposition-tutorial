@@ -2,6 +2,8 @@
 
 from streamlit.testing.v1 import AppTest
 
+import tutor
+
 
 # ---- journey ---------------------------------------------------------------
 
@@ -295,3 +297,98 @@ def test_reset_gate_hides_the_result_and_clears_the_prediction():
     at.button[0].click().run()
     assert "RESULT" not in _shown(at)
     assert at.number_input[0].value is None and not at.number_input[0].disabled
+
+
+# ---- who sees what the student types ---------------------------------------
+
+CLOUD = {"name": "big-model:cloud", "remote_host": "https://ollama.com"}
+
+
+def _captions(at):
+    return " ".join(c.value for c in at.caption)
+
+
+def test_local_model_says_answers_stay_on_this_computer(ollama):
+    at = AppTest.from_function(_chat_app).run()
+    assert "running on this computer" in _captions(at)
+
+
+def test_cloud_model_picked_in_local_ollama_gets_the_cloud_warning(ollama):
+    ollama.models = ["local-model", CLOUD]
+    at = AppTest.from_function(_chat_app).run()
+    assert "running on this computer" in _captions(at)
+    at.selectbox[0].set_value("big-model:cloud").run()
+    assert "sent to Ollama's cloud service" in _captions(at)
+    assert "running on this computer" not in _captions(at)
+
+
+def test_model_list_is_not_fetched_again_on_every_redraw(ollama):
+    at = AppTest.from_function(_chat_app).run()
+    at.run()
+    at.run()
+    assert ollama.tag_requests == 1
+
+
+# ---- class password ---------------------------------------------------------
+
+def test_chat_is_locked_until_the_class_password_is_given(ollama, monkeypatch):
+    monkeypatch.setenv("APP_PASSWORD", "open-sesame")
+    tutor.load_settings()
+    at = AppTest.from_function(_chat_app).run()
+    assert len(at.chat_input) == 0
+    # Inside a form, the typed text is sent together with the button press.
+    at.text_input[0].set_value("wrong")
+    at.button[0].click().run()
+    assert "not right" in " ".join(e.value for e in at.error)
+    assert len(at.chat_input) == 0 and ollama.requests == []
+    at.text_input[0].set_value("open-sesame")
+    at.button[0].click().run()
+    assert len(at.chat_input) == 1
+
+
+# ---- animations -------------------------------------------------------------
+
+import numpy as np
+
+from components import plots_waves
+from physics import oscillators, phibit
+
+
+def test_oscillator_animation_has_a_complete_frame_for_every_moment():
+    t = np.linspace(0, 4 * np.pi, 30)
+    x1, x2 = oscillators.positions(t, 40, -10)
+    fig = plots_waves.oscillator_animation(t, x1, x2)
+    assert len(fig.frames) == 30
+    assert all(len(frame.data) == len(fig.data) for frame in fig.frames)
+    play = fig.layout.updatemenus[0].buttons[0]
+    assert set(play.args[0]) == {frame.name for frame in fig.frames}
+
+
+def _chain_frames(a_left, a_right, wave_number, omega):
+    x = np.arange(12.0)
+    fine = np.linspace(0, 11, 50)
+    cycle = np.linspace(0, 2 * np.pi / omega, 20, endpoint=False)
+    u = np.array([phibit.displacement(x, t, a_left, a_right, 0, wave_number, omega)
+                  for t in cycle])
+    f = np.array([phibit.displacement(fine, t, a_left, a_right, 0, wave_number, omega)
+                  for t in cycle])
+    return u, fine, f
+
+
+def test_chain_animation_has_a_complete_frame_for_every_moment():
+    u, fine, f = _chain_frames(1, 0.5, phibit.DEFAULT_K, 1.5)
+    fig = plots_waves.chain_animation(u, fine, f, nodes=[2.0])
+    assert len(fig.frames) == 20
+    assert all(len(frame.data) == len(fig.data) for frame in fig.frames)
+
+
+def test_chain_weights_never_cross_even_for_short_wavelengths():
+    # Real chain, fast driver, both waves on: neighbors move almost opposite.
+    q = phibit.chain_wavenumber(3.9)
+    u, _, _ = _chain_frames(1, 1, q, 3.9)
+    scale = plots_waves.chain_scale(u)
+    positions = np.arange(12) + scale * u
+    assert np.all(np.diff(positions, axis=1) > 0.3)
+    # Gentle waves keep the original size.
+    gentle, _, _ = _chain_frames(1, 0, phibit.DEFAULT_K, 1.5)
+    assert plots_waves.chain_scale(gentle) == plots_waves.CHAIN_SCALE

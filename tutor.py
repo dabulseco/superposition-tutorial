@@ -113,6 +113,22 @@ load_settings()
 MAX_HISTORY_MESSAGES = 10
 
 
+# Names of models that run on Ollama's servers even in LOCAL mode.
+REMOTE_MODELS: set[str] = set()
+
+
+def leaves_this_computer(model: str | None) -> bool:
+    """
+    True if text sent to this model goes to Ollama's cloud: always in HOSTED
+    mode, and in LOCAL mode for models Ollama marks as remote (their names
+    usually end in "cloud").
+    """
+    if HOSTED:
+        return True
+    return bool(model) and (model in REMOTE_MODELS
+                            or model.endswith(("-cloud", ":cloud")))
+
+
 class OllamaUnavailable(Exception):
     """Raised when Ollama can't be reached or returns an error."""
 
@@ -153,7 +169,11 @@ def list_models() -> list[str]:
             "Start the Ollama app (or run `ollama serve`) and reload this page."
         ) from err
 
-    available = [m["name"] for m in reply.json().get("models", [])]
+    listed = reply.json().get("models", [])
+    available = [m["name"] for m in listed]
+    # Ollama on a laptop can also list "cloud" models, which it forwards to
+    # Ollama's servers. Remember them so the app can say where text goes.
+    REMOTE_MODELS.update(m["name"] for m in listed if m.get("remote_host"))
     if HOSTED:
         # Offer only our short list, in our order. If none of those exist
         # any more, fall back to everything the service offers.
@@ -283,6 +303,9 @@ HOW TO ANSWER
   ({context['controls']}).
 - If a question is outside this topic, say so in one sentence and steer back.
 - If you are not sure, say so rather than guessing.
+- Write math with $...$ (for example $P(+) = (1 + \\vec r \\cdot \\hat n)/2$).
+- Stay consistent with the REFERENCE NOTES. Never invent numbers; use only
+  the numbers given below or ones you compute from the formulas in the notes.
 
 GUIDE, DON'T TELL
 Your goal is for the student to reach the answer themselves.
@@ -317,9 +340,6 @@ student would ask them, that take the next step from this conversation:
 something to predict, test in the simulation, or explain. They must not
 give away an answer, and they must respect the rule below about results
 the student has not seen yet. Do not mention this block in your reply.
-- Write math with $...$ (for example $P(+) = (1 + \\vec r \\cdot \\hat n)/2$).
-- Stay consistent with the REFERENCE NOTES. Never invent numbers; use only
-  the numbers given below or ones you compute from the formulas in the notes.
 
 {reveal_rule}
 

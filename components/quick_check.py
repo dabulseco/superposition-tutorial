@@ -35,16 +35,22 @@ def quick_check(page_id: str) -> None:
             choice = st.radio(item["question"],
                               [o["text"] for o in item["options"]],
                               key=f"quick_{item_id}")
+            checked_key = f"quick_checked_{item_id}"
             if st.button("Check", key=f"quick_check_{item_id}"):
                 if choice is None:
                     st.info("Choose an answer first.")
                     continue
                 option = next(o for o in item["options"] if o["text"] == choice)
-                correct = bool(option.get("correct"))
                 journey.record("quick_check", page_id, item_id=item_id,
                                question=item["question"], choice=choice,
-                               correct=correct)
-                if correct:
+                               correct=bool(option.get("correct")))
+                # Remembered, so the hint stays up while the student goes
+                # back to the simulation to try what it suggests.
+                st.session_state[checked_key] = choice
+
+            if choice is not None and st.session_state.get(checked_key) == choice:
+                option = next(o for o in item["options"] if o["text"] == choice)
+                if option.get("correct"):
                     st.success("Correct.")
                 else:
                     st.warning(f"Not quite. {option['feedback']} "

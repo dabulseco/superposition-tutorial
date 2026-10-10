@@ -32,7 +32,7 @@ else:
     counts = journey.summary(events)
     cols = st.columns(4)
     cols[0].metric("Topics opened", f"{counts['topics']} of 5")
-    cols[1].metric("Predictions that matched",
+    cols[1].metric("Either/or predictions that matched",
                    f"{counts['matched']} of {counts['predictions']}")
     cols[2].metric("Answers submitted", str(counts["answers"]))
     cols[3].metric("Questions asked", str(counts["questions"]))

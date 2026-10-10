@@ -61,7 +61,9 @@ def get_feedback(question: dict, answer: str):
         return None
     try:
         with st.spinner("Reading your answer…"):
-            return feedback.give_feedback(model, question, answer)
+            result = feedback.give_feedback(model, question, answer)
+            result["text"] = tutor.normalize_math(result["text"])
+            return result
     except tutor.OllamaUnavailable:
         return None
 

@@ -61,17 +61,21 @@ def main():
 
     # The sidebar is drawn before the page so the page's chat knows which
     # model was picked.
-    layout.progress_sidebar()
+    progress_slot = st.sidebar.container()
     model_picker()
 
     # A typo in the questions file should be visible at once, on any page.
+    question_count = 3
     try:
-        feedback.load_questions(valid_pages=set(layout.PAGE_FILES))
+        question_count = len(
+            feedback.load_questions(valid_pages=set(layout.PAGE_FILES)))
         feedback.load_quick_checks(valid_pages=set(layout.PAGE_FILES))
     except feedback.ContentError as err:
         st.error(str(err))
 
     current.run()
+    # Filled in after the page ran, so it counts what the student just did.
+    layout.progress_sidebar(progress_slot, question_count)
     layout.footer()
 
 

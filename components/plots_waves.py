@@ -135,10 +135,23 @@ CHAIN_SCALE = 0.25           # an amplitude of 1 moves a weight 0.25 spacings
 RAIL_Y = 1.0                 # height of the rail the side springs hang from
 
 
-def _chain_shapes(displacements):
+def chain_scale(frames_u) -> float:
+    """
+    How far to draw a displacement of 1, in weight spacings. Normally
+    CHAIN_SCALE. For short wavelengths neighbors move almost opposite, and
+    at that size they would be drawn passing through each other, so the
+    drawing is scaled down just enough to keep a gap between them.
+    """
+    closest = float(np.max(-np.diff(np.asarray(frames_u), axis=1), initial=0.0))
+    if closest * CHAIN_SCALE <= 0.6:
+        return CHAIN_SCALE
+    return 0.6 / closest
+
+
+def _chain_shapes(displacements, scale=CHAIN_SCALE):
     """Coordinates of the weights and all springs for one moment."""
     n = len(displacements)
-    masses = np.arange(n) + CHAIN_SCALE * np.asarray(displacements)
+    masses = np.arange(n) + scale * np.asarray(displacements)
     xs, ys = [], []
     for i in range(n - 1):                      # springs between neighbors
         sx, sy = spring_points(masses[i] + 0.12, masses[i + 1] - 0.12, 0,
@@ -167,8 +180,10 @@ def chain_animation(frames_u, fine_x, frames_fine_u, nodes=(), loops=12,
     weight_x = np.arange(n)
     limit = max(2.2, float(np.max(np.abs(frames_fine_u))) * 1.1)
 
+    scale = chain_scale(frames_u)
+
     def traces(i):
-        masses, xs, ys, side_x, side_y = _chain_shapes(frames_u[i])
+        masses, xs, ys, side_x, side_y = _chain_shapes(frames_u[i], scale)
         return [
             go.Scatter(x=side_x, y=side_y, mode="lines", hoverinfo="skip",
                        line=dict(color="#bbb", width=1.5), xaxis="x", yaxis="y"),

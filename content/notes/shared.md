@@ -20,7 +20,10 @@ Words to use carefully
 - "Mixed state" is the technical term for a CLASSICAL MIXTURE: each system
   is definitely in one state or the other and we just don't know which.
   That is the opposite of a superposition. For a superposition say "a
-  combination of the two", never "a mixed state" or "a mix".
+  combination of the two", never "a mixed state". The pages use the
+  everyday word "mix" on some buttons and labels (for example "Prepare
+  Your Mix", "Uneven Mix"); there it just means "combination", and you may
+  use it the same way, but never to mean a classical mixture.
 - Amplitude and power are different. Power (and probability) goes as the
   amplitude squared. On the phi-bit page the sliders set amplitudes; the
   "share of State 1" is a_R^2 / (a_L^2 + a_R^2), the same formula as a

@@ -23,6 +23,18 @@ from components import journey
 LOG_FILE = Path(__file__).parent.parent / "logs" / "tutor_log.jsonl"
 
 
+@st.cache_data(ttl=30, show_spinner=False)
+def _models(url: str, hosted: bool, offered: tuple) -> tuple:
+    """
+    The model list, asked for at most once every 30 seconds instead of on
+    every slider move. The arguments only tell the cache when to start
+    over (a different server or mode). A failure is not remembered, so
+    starting Ollama and reloading works straight away.
+    """
+    models = tutor.list_models()
+    return models, sorted(tutor.REMOTE_MODELS)
+
+
 def model_picker():
     """
     Sidebar dropdown of Ollama models.
@@ -37,7 +49,9 @@ def model_picker():
     with st.sidebar:
         st.subheader("Tutor")
         try:
-            models = tutor.list_models()
+            models, remote = _models(tutor.OLLAMA_URL, tutor.HOSTED,
+                                     tuple(tutor.HOSTED_MODELS))
+            tutor.REMOTE_MODELS.update(remote)
         except tutor.OllamaUnavailable as err:
             models, error = [], str(err)
 
@@ -93,7 +107,7 @@ def tutor_unlocked(key: str) -> bool:
 
 def privacy_caption() -> str:
     """Who sees what the student types. Shown wherever text goes to the model."""
-    if tutor.HOSTED:
+    if tutor.leaves_this_computer(st.session_state.get("tutor_model")):
         return ("What you type here is sent to Ollama's cloud service to be "
                 "answered, so don't type personal information.")
     return "Answers come from a model running on this computer."
