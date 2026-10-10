@@ -215,3 +215,65 @@ def test_t2_both_weights_at_center_does_not_break():
     at.slider(key="t2_x2").set_value(0).run()
     assert not at.exception
     assert "No state yet" in all_text(at)
+
+
+# ---- Topic 3: Electrons & Qubits --------------------------------------------
+
+def test_t3_starts_at_5050_with_the_arrow_on_the_equator():
+    at = run_page("t3")
+    assert not at.exception
+    assert at.slider(key="t3_p").value == 50
+    assert "50% UP / 50% DOWN" in all_text(at)
+    assert "tilted 90°" in all_text(at)
+    assert at.session_state["t3_outcomes"] == []
+
+
+def test_t3_measure_once_snaps_and_counts_one_result():
+    at = run_page("t3")
+    at.button(key="t3_measure1").click().run()
+    assert at.session_state["t3_snapped"] in ("UP", "DOWN")
+    assert f"It snapped to: Spin {at.session_state['t3_snapped']}" in all_text(at)
+    assert len(at.session_state["t3_outcomes"]) == 1
+
+
+def test_t3_measuring_the_same_qubit_again_repeats_the_result():
+    at = run_page("t3")
+    at.button(key="t3_measure1").click().run()
+    first = at.session_state["t3_snapped"]
+    for _ in range(5):
+        at.button(key="t3_again").click().run()
+        assert at.session_state["t3_snapped"] == first
+        assert f"Same result: {first}" in all_text(at)
+    assert len(at.session_state["t3_outcomes"]) == 1    # not new data
+
+
+def test_t3_measure_100_needs_a_prediction_and_adds_100_results():
+    at = run_page("t3")
+    at.number_input(key="t3_predict_prediction").set_value(50).run()
+    at.button(key="t3_predict_run").click().run()
+    assert len(at.session_state["t3_outcomes"]) == 100
+    assert at.session_state["t3_snapped"] is None       # arrow reset
+    assert "Ran 100 measurements!" in all_text(at)
+    at.button(key="t3_predict_run").click().run()
+    assert len(at.session_state["t3_outcomes"]) == 200
+    at.button(key="t3_clear").click().run()
+    assert at.session_state["t3_outcomes"] == []
+
+
+def test_t3_certain_state_gives_only_up():
+    at = run_page("t3")
+    at.slider(key="t3_p").set_value(100).run()
+    assert "tilted 0°" in all_text(at)
+    at.number_input(key="t3_predict_prediction").set_value(100).run()
+    at.button(key="t3_predict_run").click().run()
+    assert sum(at.session_state["t3_outcomes"]) == 100
+    assert "Your prediction matches" in texts(at.success)
+
+
+def test_t3_changing_the_mix_clears_old_data_and_relocks():
+    at = run_page("t3")
+    at.number_input(key="t3_predict_prediction").set_value(50).run()
+    at.button(key="t3_predict_run").click().run()
+    at.slider(key="t3_p").set_value(70).run()
+    assert at.session_state["t3_outcomes"] == []
+    assert at.number_input(key="t3_predict_prediction").value is None
