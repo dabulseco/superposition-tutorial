@@ -23,6 +23,7 @@ import streamlit as st
 from components import journey, layout, plots
 from components.chat_panel import chat_panel
 from components.coin import coin as draw_coin
+from components.light_switch import light_switch
 from components.prediction_gate import prediction_gate, reset_gate
 from components.quick_check import quick_check
 from physics import bits
@@ -55,7 +56,12 @@ with bit_side:
     layout.keep("t1_switch_on", True)
     switch_on = st.toggle("Flip the switch to toggle:", key="t1_switch_on")
     switch = "ON" if switch_on else "OFF"
-    st.markdown(f"## 💡 {switch}" if switch_on else f"## ⚫ {switch}")
+    # Animate only on the run where the switch changed, so it does not
+    # move by itself when the page opens or another control is used.
+    flipped = state.get("t1_switch_drawn", switch_on) != switch_on
+    state["t1_switch_drawn"] = switch_on
+    light_switch(switch_on, flipped)
+    st.markdown(f"The switch is **{switch}**.")
 
     if st.button("Measure Classical Bit", key="t1_measure_bit"):
         result = bits.measure_classical(switch)

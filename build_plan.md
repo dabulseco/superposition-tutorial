@@ -475,6 +475,14 @@ Left as they are (small; your call):
 
 A later check in a real browser found one more: page files lived in a folder named `pages/`, which Streamlit also serves by itself. Reloading a topic page (or opening its address directly) showed it without the sidebar, tutor, or footer. The folder is now `views/`; wherever this plan says `pages/`, read `views/`.
 
+Animations added after the build (all HTML and CSS only, in `components/`, each checked in a real browser):
+
+- `coin.py`, Topic 1: the coin spins until measured, then lands with a short wobble. Has a pause switch.
+- `light_switch.py`, Topic 1: the lever moves and the bulb lights or dims when the switch is flipped.
+- `qubit_arrow.py`, Topic 3: the arrow swings to UP or DOWN when measured. The main picture is now the sphere seen from the side (there is no phase on that page); the 3D sphere remains in the state card. Streamlit removes SVG and inline styles from `st.html`, so this is built from plain boxes.
+
+All three honour the device's reduced-motion setting. Topics 2 and 4 still use the Plotly animations.
+
 Things to know:
 
 - **Holding back results is prompt-based.** The tutor is told not to reveal a result before the student predicts. With `gpt-oss:20b` it mostly complied after the rule was strengthened, but it still hinted. Try other models in the pilot.

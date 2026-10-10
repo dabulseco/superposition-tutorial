@@ -25,13 +25,12 @@ from components import journey, layout, plots
 from components.chat_panel import chat_panel
 from components.prediction_gate import prediction_gate, reset_gate
 from components.quick_check import quick_check
+from components.qubit_arrow import qubit_arrow
 from components.state_card import state_card
 from components.theme import COLOR_AXIS, COLOR_PURE
 from physics import qubit
-from physics.mixture import unit_vector
 
 PAGE_ID = "t3"
-SPHERE_LABELS = {"UP |0⟩": (0, 0, 1.25), "DOWN |1⟩": (0, 0, -1.25)}
 state = st.session_state
 
 state.setdefault("t3_seed", random.randrange(1_000_000))
@@ -122,23 +121,19 @@ message = state.get("t3_message")
 
 # ---------------- The picture ----------------
 with picture:
-    if snapped == "UP":
-        theta = 0.0
-    elif snapped == "DOWN":
-        theta = 180.0
-    else:
-        theta = qubit.theta_from_probability(p_up)
-    st.plotly_chart(
-        plots.bloch_arrow_figure(unit_vector(theta, 0), "Qubit state",
-                                 SPHERE_LABELS),
-        width="stretch")
+    prepared_theta = qubit.theta_from_probability(p_up)
+    theta = {"UP": 0.0, "DOWN": 180.0}.get(snapped, prepared_theta)
+    # The sphere seen from the side. state["t3_draws"] goes up with each
+    # fresh measurement, which is what makes the swing play again.
+    qubit_arrow(prepared_theta, snapped, shot=state["t3_draws"])
     if snapped:
-        st.caption(f"Picture: after the measurement the arrow points "
-                   f"straight {snapped} (tilted {theta:.0f}° from the top).")
+        st.caption(f"Picture: the qubit's sphere seen from the side. After "
+                   f"the measurement the arrow points straight {snapped} "
+                   f"(tilted {theta:.0f}° from the top).")
     else:
-        st.caption(f"Picture: the arrow is tilted {theta:.0f}° from the top "
-                   f"(UP). The closer it is to a pole, the more likely that "
-                   f"result.")
+        st.caption(f"Picture: the qubit's sphere seen from the side. The "
+                   f"arrow is tilted {theta:.0f}° from the top (UP). The "
+                   f"closer it is to a pole, the more likely that result.")
 
     if message == "measured" and snapped:
         ket = "|0⟩" if snapped == "UP" else "|1⟩"

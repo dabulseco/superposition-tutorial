@@ -87,13 +87,6 @@ def bloch_sphere_figure(r_pure, r_mix, n_axis) -> go.Figure:
     return fig
 
 
-def bloch_arrow_figure(vec, name, labels=None, height=420) -> go.Figure:
-    """A Bloch sphere with one state arrow (used by the qubit page)."""
-    fig = bloch_sphere_base(labels, height)
-    arrow(fig, vec, COLOR_PURE, name)
-    return fig
-
-
 def results_figure(plus_pure, plus_mix, n_shots) -> go.Figure:
     """Bar chart of simulated '+' and '-' counts for both states."""
     fig = go.Figure()
